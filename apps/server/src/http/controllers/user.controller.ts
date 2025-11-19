@@ -1,11 +1,16 @@
 import { NextFunction, Request, Response } from "express";
 import jwt from 'jsonwebtoken';
+import {UserSchema} from '@repo/schema';
 
 export const signup = async (req: Request, res: Response) => {
 
-  const {user, email, password} = req.body;
-
-  if(!user || !email || !password) {
+  const data = UserSchema.safeParse(req.body);
+  if(!data.success) {
+    return res.json({
+      message: "Enter valid credentials."
+    })
+  }
+  if(!user|| !email || !password) {
     throw new Error("Enter valid credentails.");
   }
   const token = jwt.sign({

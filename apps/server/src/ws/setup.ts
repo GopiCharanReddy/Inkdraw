@@ -14,8 +14,9 @@ export const setupWs = (server: Server) => {
     try {
       const queryParams = new URLSearchParams(url.split('?')[1])
       const token = queryParams.get('name') || "";
-      const decoded = jwt.verify(token, process.env.JWT_SECRET as string) as JwtPayload & { userId: string };
+      const decoded = jwt.verify(token, process.env.JWT_SECRET!) as JwtPayload & { userId: string };
 
+      
       if (!decoded || !decoded.userId) {
         console.log("WS rejected, invalid token.")
         ws.close();
