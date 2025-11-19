@@ -1,6 +1,7 @@
 import { NextFunction, Request, Response } from "express";
 import jwt from 'jsonwebtoken';
-import {UserSchema} from '@repo/schema';
+import { UserSchema } from "@repo/schema";
+import prismaClient from '@repo/db';
 
 export const signup = async (req: Request, res: Response) => {
 
@@ -10,12 +11,19 @@ export const signup = async (req: Request, res: Response) => {
       message: "Enter valid credentials."
     })
   }
-  if(!user|| !email || !password) {
-    throw new Error("Enter valid credentails.");
+  const user = await prismaClient.user.create({
+    data: {
+      username: data.data.username,
+      email: data.data.email,
+      password: data.data.password
+    }
+  })
+  if(!user) {
+    return res.status(403).json({message: "Error while Signing up."})
   }
   const token = jwt.sign({
-    id: user._id,
-    uesrname: user.uesrname
+    id: user.id,
+    uesrname: user.username
   }, process.env.JWT_SECRET!, {expiresIn: '1h'})
   return;
 }

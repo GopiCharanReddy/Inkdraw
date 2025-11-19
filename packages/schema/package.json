@@ -4,6 +4,7 @@
   "exports": {
     ".": "./src/types.ts"
   },
+  "types": "./src/types.ts",
   "main": "index.js",
   "description": "",
   "scripts": {

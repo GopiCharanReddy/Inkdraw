@@ -1,4 +1,4 @@
-import { maxLength, z } from "zod";
+import z from "zod";
 
 export const UserSchema = z.object({
   username: z
