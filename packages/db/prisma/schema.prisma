@@ -19,14 +19,14 @@ model User{
  passwordHash String @map("password_hash")
  messages Message[]
  createdAt DateTime @default(now())
- updatedAt DateTime @default(now()) @map("created_at")
+ updatedAt DateTime @default(now()) @updatedAt @map("updated_at")
 }
 
 model Message{
   id Int @id @default(autoincrement())
   content String
   createdAt DateTime @default(now())
-  updatedAt DateTime @default(now())
-  userId Int
+  updatedAt DateTime @default(now()) @updatedAt
+  userId String
   user User @relation(fields: [userId], references: [id])
 }

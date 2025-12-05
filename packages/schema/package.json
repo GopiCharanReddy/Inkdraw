@@ -1,6 +1,7 @@
 {
   "name": "@repo/schema",
   "version": "1.0.0",
+  "type":"module",
   "exports": {
     ".": "./src/types.ts"
   },
@@ -16,7 +17,6 @@
   "keywords": [],
   "author": "",
   "license": "ISC",
-  "type": "commonjs",
   "dependencies": {
     "zod": "^4.1.12"
   }

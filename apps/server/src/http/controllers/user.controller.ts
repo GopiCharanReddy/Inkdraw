@@ -30,7 +30,7 @@ export const signup = async (req: Request, res: Response) => {
       data: {
         username: parsedData.data.username,
         email: parsedData.data.email,
-        password: hashedPassword
+        passwordHash: hashedPassword
       }
     })
     if (!user) {
