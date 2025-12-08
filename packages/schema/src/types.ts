@@ -18,17 +18,6 @@ export const UserSchema = z.object({
     .regex(/[0-9]/, { error: "Password must contain at least one number" }),
 });
 
-export const SigninSchema = z.object({
-  email: z.email({ error: "Invalid email address" }),
-  password: z
-    .string()
-    .min(8, { error: "Password must be atleast 8 characters long" })
-    .regex(/[A-Z]/, {
-      error: "Password must contain at least one uppercase letter",
-    })
-    .regex(/[0-9]/, { error: "Password must contain at least one number" }),
-});
-
 export const CreateRoomSchema = z.object({
   name: z.string().min(4).max(20)
 })

@@ -4,11 +4,22 @@ import { UserSchema } from "@repo/schema";
 import bcrypt from "bcryptjs";
 import prismaClient from '@repo/db';
 
+export const generateToken = (payload: object) => {
+  return jwt.sign(
+    payload,
+    process.env.JWT_SECRET!,
+    {
+      expiresIn: "1h"
+    }
+  );
+}
+
 export const signup = async (req: Request, res: Response) => {
 
   const parsedData = UserSchema.safeParse(req.body);
   if (!parsedData.success) {
-    return res.status(401).json({
+    console.log(parsedData.error);
+    return res.status(400).json({
       message: "Enter valid credentials."
     })
   }
@@ -22,7 +33,7 @@ export const signup = async (req: Request, res: Response) => {
       }
     });
     if (existingUser) {
-      res.status(400).json({
+      return res.status(401).json({
         message: "User already exists."
       })
     }
@@ -34,18 +45,20 @@ export const signup = async (req: Request, res: Response) => {
       }
     })
     if (!user) {
-      return res.status(403).json({ message: "Error while Signing up." })
+      return res.status(400).json({ message: "Error while Signing up." })
     }
-    const token = jwt.sign({
+    const token = generateToken({
       id: user.id,
       username: user.username
-    }, process.env.JWT_SECRET!, { expiresIn: '1h' })
+    })
     res.status(201).json({
+      userId: user.id,
       token,
       message: "User signed up successfully."
     });
   } catch (error) {
-    res.status(402).json({
+    console.log("Signup error: ", error)
+    return res.status(500).json({
       message: "Unexpected error while signing up."
     })
   }
@@ -53,30 +66,35 @@ export const signup = async (req: Request, res: Response) => {
 
 export const signin = async (req: Request, res: Response) => {
   const parsedData = UserSchema.safeParse(req.body);
-  if (!parsedData.success) {
-    res.status(401).json({
-      message: "Enter valid credentials."
-    })
-  }
-  const existingUser = await prismaClient.user.findFirst({
-    where: {
-      username: parsedData.data?.username,
+  try {
+    if (!parsedData.success) {
+      res.status(400).json({
+        message: "Enter valid credentials."
+      })
     }
-  });
-
-  if (!existingUser) {
-    res.status(402).json({
-      message: "User does not exist."
+    const existingUser = await prismaClient.user.findFirst({
+      where: {
+        username: parsedData.data?.username,
+      }
+    });
+  
+    if (!existingUser) {
+      res.status(400).json({
+        message: "User does not exist."
+      })
+    }
+    const token = generateToken({
+      id: existingUser?.id,
+      username: existingUser?.username
+    })
+    return res.status(201).json({
+      token,
+      message: "User signed up successfully."
+    })
+  } catch (error) {
+    console.log("Signin error: ",error);
+    return res.json({
+      error: "Unexpected error while signing in."
     })
   }
-  const token = jwt.sign({
-    id: existingUser?.id,
-    username: existingUser?.username
-  }, process.env.JWT_SECRET!, { expiresIn: '1h' })
-
-  res.status(201).json({
-    token,
-    message: "User signed up successfully."
-  })
-  return;
 }
