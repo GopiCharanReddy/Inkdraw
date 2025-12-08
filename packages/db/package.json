@@ -2,10 +2,11 @@
   "name": "@repo/db",
   "version": "1.0.0",
   "description": "",
-  "main": "src/client.ts",
-  "types": "src/client.ts",
+  "main": "dist/src/client.js",
+  "types": "src/client.d.ts",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "build": "tsc"
   },
   "keywords": [],
   "author": "",
@@ -16,7 +17,8 @@
   },
   "devDependencies": {
     "@repo/typescript-config": "workspace:*",
-    "@types/node": "^22.15.3",
+    "@types/node": "^22.19.1",
+    "@types/pg": "^8.15.6",
     "prisma": "^7.0.0"
   }
 }
