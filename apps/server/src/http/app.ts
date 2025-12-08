@@ -7,7 +7,7 @@ const router = express.Router();
 
 app.use(express.json());
 app.use('/api/v1', router)
-app.use('/users', userRoute)
-app.use('/rooms', roomRoute)
+router.use('/users', userRoute)
+router.use('/rooms', roomRoute)
 
 export default app
