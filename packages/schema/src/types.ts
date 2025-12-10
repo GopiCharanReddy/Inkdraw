@@ -21,3 +21,10 @@ export const UserSchema = z.object({
 export const CreateRoomSchema = z.object({
   name: z.string().min(4).max(20)
 })
+export const FetchRoomInfo = z.object({
+  slug: z.string().min(4).max(20)
+})
+
+export const FetchMessages = z.object({
+  roomId: z.number()
+})

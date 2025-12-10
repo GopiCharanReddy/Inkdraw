@@ -1,8 +1,8 @@
-import { prisma as prismaClient } from "@repo/db";
-import { CreateRoomSchema } from "@repo/schema";
-import { NextFunction, Request, Response } from "express";
+import prismaClient  from "@repo/db";
+import { CreateRoomSchema, FetchRoomInfo } from "@repo/schema";
+import { Request, Response } from "express";
 
-export const createRoom = async (req: Request, res:Response, next: NextFunction) => {
+export const createRoom = async (req: Request, res:Response) => {
   const parsedData  = CreateRoomSchema.safeParse(req.body);
   if(!parsedData.success) {
     return res.status(400).json({
@@ -10,7 +10,6 @@ export const createRoom = async (req: Request, res:Response, next: NextFunction)
     })
   }
 try {
-  
     const userId = req.userId;
     
     if(!userId) {
@@ -35,4 +34,36 @@ try {
     error: "Unexpected error while creating the room."
   })
 }
+}
+
+export const infoRoom = async (req: Request, res: Response) => {
+  const parsedData = FetchRoomInfo.safeParse(req.params.slug);
+  if(!parsedData.success) {
+    return res.status(400).json({
+      message: "Enter a valid slug."
+    })
+  }
+  try {
+    
+    const room = await prismaClient.room.findFirst({
+      where: {
+        slug: parsedData.data.slug
+      }
+    });
+
+    if(!room || room === null) {
+      return res.status(402).json({
+        message: "Room does not exist."
+      })
+    }
+
+    res.status(201).json({
+      room
+    })
+  } catch (error) {
+    console.error("Info Room Error: ", error);
+    res.status(500).json({
+      error: "Unexpected error while fetching Room Info."
+    })
+  }
 }

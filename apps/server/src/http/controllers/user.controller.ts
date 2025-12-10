@@ -45,7 +45,7 @@ export const signup = async (req: Request, res: Response) => {
       }
     })
     if (!user) {
-      return res.status(400).json({ message: "Error while Signing up." })
+      return res.status(400).json({ error: "Error while Signing up." })
     }
     const token = generateToken({
       id: user.id,
@@ -59,7 +59,7 @@ export const signup = async (req: Request, res: Response) => {
   } catch (error) {
     console.log("Signup error: ", error)
     return res.status(500).json({
-      message: "Unexpected error while signing up."
+      error: "Unexpected error while signing up."
     })
   }
 }

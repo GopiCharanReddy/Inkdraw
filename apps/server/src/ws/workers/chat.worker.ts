@@ -1,4 +1,4 @@
-import { prisma as prismaClient } from "@repo/db";
+import prismaClient  from "@repo/db";
 import { Worker } from "bullmq";
 import { createRedisConnection } from "@repo/redis";
 import { UnrecoverableError } from "bullmq";
