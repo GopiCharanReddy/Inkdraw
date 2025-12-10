@@ -1,7 +1,39 @@
-import { WebSocketServer } from "ws";
+import { WebSocket, WebSocketServer } from "ws";
 import jwt, { JwtPayload } from 'jsonwebtoken';
 import http, { Server } from 'http';
-import express from 'express';
+import { chatQueue } from "./queues/chat.queue";
+
+type User = {
+  ws: WebSocket,
+  userId: string,
+  rooms: string[],
+  username?: string
+}
+
+const users: User[] = [];
+
+const checkUser = (token: string):  Pick<User, 'userId' | 'username'> | null => {
+  try {
+    const decoded = jwt.verify(token, process.env.JWT_SECRET!) as JwtPayload & { id: string; username: string};
+  
+    if(typeof decoded === "string") {
+      return null;
+    }
+  
+    if (!decoded || typeof decoded !== "object") {
+      console.log("WS rejected, invalid token.")
+      return null;
+    }
+  
+    return  {
+      userId: decoded.id,
+      username: decoded.username
+    }
+  } catch (error) {
+    console.log("User not authenticated.", error)
+    return null;
+  }
+}
 
 export const setupWs = (server: Server) => {
   const socket = new WebSocketServer({ server })
@@ -13,17 +45,66 @@ export const setupWs = (server: Server) => {
     }
     try {
       const queryParams = new URLSearchParams(url.split('?')[1])
-      const token = queryParams.get('name') || "";
-      const decoded = jwt.verify(token, process.env.JWT_SECRET!) as JwtPayload & { userId: string };
+      const token = queryParams.get('token') || "";
+      const userAuthentication = checkUser(token);
 
-      
-      if (!decoded || !decoded.userId) {
-        console.log("WS rejected, invalid token.")
+      if(!userAuthentication) {
         ws.close();
         return;
       }
-      ws.on("message", function message(data) {
+      
+      users.push({
+        userId: userAuthentication.userId,
+        ws,
+        rooms: [],
+      })
+
+      ws.on("message", async function message(data) {
         console.log("Websocket connection successfully setup.")
+        const parsedData = JSON.parse(data as unknown as string)
+
+        if(parsedData.type === 'join_room') {
+          const user = users.find(x => x.ws === ws);
+          user?.rooms.push(parsedData.roomId);
+        }
+
+        if(parsedData.type === 'leave_room') {
+          const user = users.find(x => x.ws === ws );
+          if(!user) {
+            return;
+          }
+          user.rooms = user?.rooms.filter(x => x === parsedData.room);
+        }
+
+        if(parsedData.type === 'chat') {
+          const roomId = parsedData.roomId;
+          const message = parsedData.message;
+
+          users.forEach(user => {
+            if(user.rooms.includes(roomId)) {
+              user.ws.send(JSON.stringify({
+                type: 'chat',
+                message,
+                roomId,
+              }))
+            }
+          })
+
+          const res = await chatQueue.add("saveMessage", {
+            userId: userAuthentication.userId,
+            roomId,
+            message
+          },
+        {
+          attempts: 3,
+          backoff: {
+            type: "exponential",
+            delay: 5000
+          }
+        }
+        ); 
+          console.log("Job added to queue.", res)
+        }
       });
     } catch (error) {
       console.log("Error while connecting to websocket server.", error);

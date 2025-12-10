@@ -1,4 +1,4 @@
-import prismaClient from "@repo/db";
+import { prisma as prismaClient } from "@repo/db";
 import { CreateRoomSchema } from "@repo/schema";
 import { NextFunction, Request, Response } from "express";
 
