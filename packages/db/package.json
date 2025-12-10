@@ -2,11 +2,11 @@
   "name": "@repo/db",
   "version": "1.0.0",
   "description": "",
-  "main": "dist/src/client.js",
+  "main": "src/client.js",
   "types": "src/client.d.ts",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "build": "tsc"
+    "build": "tsc -p tsconfig.json"
   },
   "keywords": [],
   "author": "",

@@ -6,6 +6,7 @@
 
 generator client {
   provider = "prisma-client-js"
+  output   = "../generated/prisma"
 }
 
 datasource db {
@@ -17,7 +18,8 @@ model User{
  username String @unique
  email String @unique
  passwordHash String @map("password_hash")
- messages Room[]
+ rooms Room[]
+ messages Message[]
  createdAt DateTime @default(now())
  updatedAt DateTime @default(now()) @updatedAt @map("updated_at")
 }
@@ -25,8 +27,18 @@ model User{
 model Room{
   id Int @id @default(autoincrement())
   slug String @unique
+  adminId String
+  admin User @relation(fields: [adminId], references: [id])
+  messages Message[]
   createdAt DateTime @default(now())
   updatedAt DateTime @default(now()) @updatedAt
-  adminId String
-  user User @relation(fields: [adminId], references: [id])
+}
+
+model Message{
+  id Int @id @default(autoincrement())
+  content String
+  roomId Int
+  room Room @relation(fields: [roomId], references: [id])
+  userId String
+  user User @relation(fields: [userId], references: [id])
 }
