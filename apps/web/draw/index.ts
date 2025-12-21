@@ -33,8 +33,8 @@ const drawShape = (ctx: CanvasRenderingContext2D, shape: Shape) => {
   }
 }
 export const initDraw = async (canvas: HTMLCanvasElement, getTool: () => string, roomId: string) => {
-
   let existingShapes: Shape[] = await getExistingShapes(roomId);
+  console.log(existingShapes);
   const ctx = canvas.getContext("2d");
   if (!ctx) {
     return;
@@ -130,7 +130,12 @@ const clearCanvas = (existingShapes: Shape[], canvas: HTMLCanvasElement, ctx: Ca
 }
 
 const getExistingShapes = async (roomId: string) => {
-  const res = await axios.get(`${process.env.HTTP_BACKEND_URL}/rooms/${roomId}`);
+  console.log("Getting existing shapes")
+  const res = await axios.get(`http://localhost:8080/api/v1/chat/${roomId}`, {
+    headers: {
+      Authorization: localStorage.getItem('token')
+    }
+  });
   const messages = res.data.messages;
 
   const shapes = messages.map((x: {message: string}) => {

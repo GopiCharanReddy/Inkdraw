@@ -3,50 +3,63 @@ import { useEffect, useRef, useState } from "react";
 import { initDraw } from "../../../draw";
 import { Button } from "@repo/ui/button";
 import { useParams } from "next/navigation";
-
-interface Pageprops {
-  params: {
-    roomId: string;
-  }
-}
+import useWebSocket from "../../components/hooks/useWebsocket";
 
 const Canvas = () => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [currentTool, setCurrentTool] = useState<'rect' | 'diamond' | 'circle'>('rect');
+  const [token, setToken] = useState<string>();
   const toolRef = useRef(currentTool);
   const params = useParams();
   const roomId = params.roomId as string;
+  useEffect(() => {
+    const storedToken = localStorage.getItem('token');
+    if(storedToken) {
+      setToken(storedToken.split('Bearer ')[1]);
+    }
+  }, []);
   
   useEffect(() => {
     toolRef.current = currentTool;
   }, [currentTool]);
 
+  const WEBSOCKET_URL = token ? `${process.env.NEXT_PUBLIC_WS_URL}?token=${token}` : null;
+  const { isConnected, message, sendMessage } = useWebSocket(WEBSOCKET_URL || "");
+
+
   useEffect(() => {
-    if(canvasRef.current) {
+    if (canvasRef.current && isConnected) {
       const canvas = canvasRef.current;
 
       let cleanUpFn: (() => void) | undefined;
-      const startDrawing = async () => {
         const cleanup = initDraw(canvas, () => toolRef.current, roomId)
-      }
-      startDrawing();
       return () => {
-        if(cleanUpFn){
+        if (cleanUpFn) {
           cleanUpFn();
         }
       }
     }
-  }, []);
+  }, [isConnected, roomId]);
+
+  if (!token) return <div className="bg-black h-screen text-white p-4">Authenticating...</div>;
+  
   return (
     <>
-    <div className="h-screen w-screen overflow-hidden bg-neutral-950">
-      <canvas className="block w-full h-full" ref={canvasRef}></canvas>
-      <div className="absolute bottom-6 right-[40%] bg-white gap-x-5 flex p-4 text-xl items-center justify-center">
-        <Button onClick={() => {setCurrentTool('rect')}} children='Rectangle'/>
-        <Button onClick={() => {setCurrentTool('diamond')}} children='Diamond'/>
-        <Button onClick={() => {setCurrentTool('circle')}} children='Circle'/>
+      <div className="h-screen w-screen overflow-hidden bg-neutral-950">
+        {isConnected ?
+          <div>
+            <canvas className="block w-full h-full" ref={canvasRef}></canvas>
+            <div className="absolute bottom-6 right-[40%] bg-white gap-x-5 flex p-4 text-xl items-center justify-center">
+              <Button onClick={() => { setCurrentTool('rect') }} children='Rectangle' />
+              <Button onClick={() => { setCurrentTool('diamond') }} children='Diamond' />
+              <Button onClick={() => { setCurrentTool('circle') }} children='Circle' />
+            </div>
+          </div>
+          :
+          <div className="w-fit h-fit p-4 bg-white">
+            isLoading
+          </div>}
       </div>
-    </div>
     </>
   )
 }
