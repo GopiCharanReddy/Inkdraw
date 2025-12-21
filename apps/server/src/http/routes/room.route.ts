@@ -7,4 +7,4 @@ const router: Router = express.Router();
 router.route('/room').post(authMiddleware,createRoom);
 export default router
 
-router.route('/:slug').post(authMiddleware, infoRoom)
+router.route('/:slug').get(authMiddleware, infoRoom)

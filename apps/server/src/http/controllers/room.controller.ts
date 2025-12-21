@@ -37,7 +37,7 @@ try {
 }
 
 export const infoRoom = async (req: Request, res: Response) => {
-  const parsedData = FetchRoomInfo.safeParse(req.params.slug);
+  const parsedData = FetchRoomInfo.safeParse(req.params);
   if(!parsedData.success) {
     return res.status(400).json({
       message: "Enter a valid slug."

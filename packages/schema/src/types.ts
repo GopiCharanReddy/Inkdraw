@@ -26,5 +26,5 @@ export const FetchRoomInfo = z.object({
 })
 
 export const FetchMessages = z.object({
-  roomId: z.number()
+  roomId: z.coerce.number()
 })
