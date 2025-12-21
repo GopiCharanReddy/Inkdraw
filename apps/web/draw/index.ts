@@ -1,19 +1,8 @@
 import axios from "axios";
+import { Shape } from '@repo/schema';
+import { sendWSMessage } from "../app/components/socketManager";
 
-type Shape = | {
-  type: "rect" | "diamond";
-  x: number;
-  y: number;
-  width: number;
-  height: number;
-}
-  | {
-    type: 'circle';
-    centerX: number;
-    centerY: number;
-    radius: number;
-  }
-const drawShape = (ctx: CanvasRenderingContext2D, shape: Shape) => {
+export const drawShape = (ctx: CanvasRenderingContext2D, shape: Shape) => {
   ctx.beginPath()
   if (shape.type === 'rect') {
     ctx.fillRect(shape.x, shape.y, shape.width, shape.height);
@@ -34,7 +23,6 @@ const drawShape = (ctx: CanvasRenderingContext2D, shape: Shape) => {
 }
 export const initDraw = async (canvas: HTMLCanvasElement, getTool: () => string, roomId: string) => {
   let existingShapes: Shape[] = await getExistingShapes(roomId);
-  console.log(existingShapes);
   const ctx = canvas.getContext("2d");
   if (!ctx) {
     return;
@@ -63,21 +51,31 @@ export const initDraw = async (canvas: HTMLCanvasElement, getTool: () => string,
     const currentTool = getTool();
     const width = e.clientX - startX;
     const height = e.clientY - startY;
+    let newShape: Shape | null = null;
     if (currentTool === 'circle') {
       const radius = Math.hypot(width, height)
-      existingShapes.push({
+      newShape = {
         type: "circle",
         centerX: startX,
         centerY: startY,
         radius
-      })
+      }
     } else if (currentTool === 'rect' || currentTool === 'diamond') {
-      existingShapes.push({
+      newShape = {
         type: currentTool,
         x: startX,
         y: startY,
         width,
         height
+      }
+    }
+    if (newShape) {
+      existingShapes.push(newShape);
+
+      sendWSMessage({
+        type: 'chat',
+        message: JSON.stringify(newShape),
+        roomId: roomId,
       })
     }
   }
@@ -107,17 +105,24 @@ export const initDraw = async (canvas: HTMLCanvasElement, getTool: () => string,
       })
     }
   }
-  
+
   canvas.addEventListener('mousedown', onMouseDown);
   canvas.addEventListener('mouseup', onMouseUp);
   canvas.addEventListener('mousemove', onMouseMove);
 
-  return () => {
-    window.removeEventListener("resize", handleResize);
-    canvas.removeEventListener("mousedown", onMouseDown);
-    canvas.removeEventListener("mouseup", onMouseUp);
-    canvas.removeEventListener("mousemove", onMouseMove);
-  };
+  return {
+    cleanup: () => {
+      window.removeEventListener("resize", handleResize);
+      canvas.removeEventListener("mousedown", onMouseDown);
+      canvas.removeEventListener("mouseup", onMouseUp);
+      canvas.removeEventListener("mousemove", onMouseMove);
+    },
+    handleAddRemoteShape: (s: Shape) => {
+      existingShapes.push(s);
+      drawShape(ctx, s);
+    }
+  }
+
 }
 
 const clearCanvas = (existingShapes: Shape[], canvas: HTMLCanvasElement, ctx: CanvasRenderingContext2D) => {
@@ -138,7 +143,7 @@ const getExistingShapes = async (roomId: string) => {
   });
   const messages = res.data.messages;
 
-  const shapes = messages.map((x: {message: string}) => {
+  const shapes = messages.map((x: { message: string }) => {
     const messageData = JSON.parse(x.message);
     return messageData;
   })

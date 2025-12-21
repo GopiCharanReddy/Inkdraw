@@ -1,6 +1,6 @@
 "use client";
 import { useEffect, useRef, useState } from "react";
-import { initDraw } from "../../../draw";
+import { drawShape, initDraw } from "../../../draw";
 import { Button } from "@repo/ui/button";
 import { useParams } from "next/navigation";
 import useWebSocket from "../../components/hooks/useWebsocket";
@@ -14,11 +14,11 @@ const Canvas = () => {
   const roomId = params.roomId as string;
   useEffect(() => {
     const storedToken = localStorage.getItem('token');
-    if(storedToken) {
+    if (storedToken) {
       setToken(storedToken.split('Bearer ')[1]);
     }
   }, []);
-  
+
   useEffect(() => {
     toolRef.current = currentTool;
   }, [currentTool]);
@@ -32,7 +32,7 @@ const Canvas = () => {
       const canvas = canvasRef.current;
 
       let cleanUpFn: (() => void) | undefined;
-        const cleanup = initDraw(canvas, () => toolRef.current, roomId)
+      const cleanup = initDraw(canvas, () => toolRef.current, roomId)
       return () => {
         if (cleanUpFn) {
           cleanUpFn();
@@ -41,8 +41,28 @@ const Canvas = () => {
     }
   }, [isConnected, roomId]);
 
+  useEffect(() => {
+    if (message && canvasRef.current) {
+      const ctx = canvasRef.current.getContext("2d");
+      if (!ctx) return;
+
+      try {
+        const data = typeof message === 'string' ? JSON.parse(message) : message;
+
+        if (data.type === 'chat') {
+          const newShape = JSON.parse(data.message);
+
+          ctx.strokeStyle = "rgba(255, 255, 255)";
+          ctx.fillStyle = "rgba(10, 10, 10)";
+          drawShape(ctx, newShape);
+        }
+      } catch (e) {
+        console.error("Error drawing incoming shape:", e);
+      }
+    }
+  }, [message]);
   if (!token) return <div className="bg-black h-screen text-white p-4">Authenticating...</div>;
-  
+
   return (
     <>
       <div className="h-screen w-screen overflow-hidden bg-neutral-950">

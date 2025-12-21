@@ -1,49 +1,27 @@
 import { useCallback, useEffect, useRef, useState } from "react";
+import { intitWebsocket, sendWSMessage } from "../socketManager";
+import { IncomingWsData } from "@repo/schema";
 
 const useWebSocket = (url: string) => {
   const [ isConnected, setIsConnected] = useState(false);
-  const [message, setMessage] = useState(null);
-  const WebsocketRef = useRef<WebSocket | null>(null);
+  const [message, setMessage] = useState<IncomingWsData | null>(null);
 
   useEffect(() => {
     if (!url || typeof window === 'undefined') return;
-    const ws = new WebSocket(url);
-    WebsocketRef.current = ws;
 
-    ws.onopen = () => {
-      console.log("Websocket connection established.")
-      setIsConnected(true)
-    }
+    const socket = intitWebsocket(url, (data) => {
+      setMessage(data);
+    })
+    if(!socket) return;
 
-    ws.onmessage = (e) => {
-      setMessage(e.data)
-    }
-
-    ws.onclose = () => {
-      console.log("Websocket connection closed.")
-      setIsConnected(false)
-    }
-
-    ws.onerror = (error) => {
-      console.log("Websocket connection error: ", error)
-    }
-
-    return () => {
-      if(ws.readyState === WebSocket.OPEN || ws.readyState === WebSocket.CONNECTING) {
-        ws.close();
-      }
-    }
+    const checkInterval = setInterval(() => {
+      setIsConnected(socket.readyState === WebSocket.OPEN)
+    }, 1000);
+    
+    return () => clearInterval(checkInterval);
   }, [url])
 
-  const sendMessage = useCallback((msg: string) => {
-    const socket = WebsocketRef.current;
-    if (socket && socket.readyState === WebSocket.OPEN) {
-      socket.send(msg);
-    } else {
-      console.error('WebSocket is not open. Current state:', socket?.readyState);
-    }
-  }, []);
-  return {isConnected, message, sendMessage}
+  return {isConnected, message, sendMessage: sendWSMessage}
 }
 
 export default useWebSocket;

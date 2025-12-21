@@ -1,4 +1,4 @@
-import z from "zod";
+import z, { number } from "zod";
 
 export const UserSchema = z.object({
   username: z
@@ -28,3 +28,26 @@ export const FetchRoomInfo = z.object({
 export const FetchMessages = z.object({
   roomId: z.coerce.number()
 })
+
+
+export type Shape = | {
+  type: "rect" | "diamond";
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+} |
+{
+  type: 'circle';
+  centerX: number;
+  centerY: number;
+  radius: number;
+}
+
+export interface WSMessage {
+  type: 'chat',
+  message: string,
+  roomId: string,
+}
+
+export type IncomingWsData = WSMessage | {type: "error"; message: string};
