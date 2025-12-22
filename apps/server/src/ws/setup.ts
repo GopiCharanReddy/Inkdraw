@@ -52,33 +52,29 @@ export const setupWs = (server: Server) => {
         ws.close();
         return;
       }
-      
-      users.push({
+      const currentUser: User = {
         userId: userAuthentication.userId,
         ws,
-        rooms: [],
-      })
+        rooms: []
+      } 
+      users.push(currentUser)
 
       ws.on("message", async function message(data) {
         console.log("Websocket connection successfully setup.")
         const parsedData = JSON.parse(data as unknown as string)
 
         if(parsedData.type === 'join_room') {
-          const user = users.find(x => x.ws === ws);
-          user?.rooms.push(parsedData.roomId);
+          if(!currentUser.rooms.includes(parsedData.roomId)){
+            currentUser.rooms.push(parsedData.roomId)
+          }
         }
 
         if(parsedData.type === 'leave_room') {
-          const user = users.find(x => x.ws === ws );
-          if(!user) {
-            return;
-          }
-          user.rooms = user?.rooms.filter(x => x === parsedData.room);
+          currentUser.rooms = currentUser.rooms.filter(id => id !==parsedData.roomId)
         }
 
         if(parsedData.type === 'chat') {
-          const roomId = parsedData.roomId;
-          const message = parsedData.message;
+          const { roomId, message } = parsedData
 
           users.forEach(user => {
             if(user.rooms.includes(roomId)) {
@@ -106,11 +102,17 @@ export const setupWs = (server: Server) => {
           console.log("Job added to queue.", res)
         }
       });
+      ws.on("close", () => {
+        const index = users.indexOf(currentUser);
+        if (index > -1) {
+          users.splice(index, 1);
+        }
+        console.log("User disconnected and removed from memory.");
+      });
     } catch (error) {
       console.log("Error while connecting to websocket server.", error);
       ws.close();
       return;
     }
-    ws.send("Hi there. This is a ws connection");
   })
 }

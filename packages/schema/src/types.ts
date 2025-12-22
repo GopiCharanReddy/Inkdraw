@@ -44,10 +44,14 @@ export type Shape = | {
   radius: number;
 }
 
-export interface WSMessage {
-  type: 'chat',
-  message: string,
-  roomId: string,
-}
+export type WSMessage = { roomId: string } & (
+  | { type: 'join_room' }
+  | { type: 'chat', message: string }
+)
 
-export type IncomingWsData = WSMessage | {type: "error"; message: string};
+export type IncomingWsData = WSMessage | { type: "error"; message: string };
+
+export type DrawActions = {
+  cleanup: () => void;
+  handleAddRemoteShape: (s: Shape) => void;
+}

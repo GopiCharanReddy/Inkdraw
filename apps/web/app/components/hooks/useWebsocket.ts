@@ -1,15 +1,15 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { intitWebsocket, sendWSMessage } from "../socketManager";
-import { IncomingWsData } from "@repo/schema";
+import { initWebsocket, sendWSMessage } from "../socketManager";
+import { IncomingWsData, WSMessage } from "@repo/schema";
 
-const useWebSocket = (url: string) => {
+const useWebSocket = (url: string, roomId: string) => {
   const [ isConnected, setIsConnected] = useState(false);
   const [message, setMessage] = useState<IncomingWsData | null>(null);
 
   useEffect(() => {
     if (!url || typeof window === 'undefined') return;
 
-    const socket = intitWebsocket(url, (data) => {
+    const socket = initWebsocket(url, roomId, (data) => {
       setMessage(data);
     })
     if(!socket) return;
@@ -21,7 +21,7 @@ const useWebSocket = (url: string) => {
     return () => clearInterval(checkInterval);
   }, [url])
 
-  return {isConnected, message, sendMessage: sendWSMessage}
+  return {isConnected, message, sendWsMessage: sendWSMessage as (msg: WSMessage) => void}
 }
 
 export default useWebSocket;

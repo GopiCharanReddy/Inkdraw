@@ -1,5 +1,5 @@
 import axios from "axios";
-import { Shape } from '@repo/schema';
+import { DrawActions, Shape } from '@repo/schema';
 import { sendWSMessage } from "../app/components/socketManager";
 
 export const drawShape = (ctx: CanvasRenderingContext2D, shape: Shape) => {
@@ -21,11 +21,15 @@ export const drawShape = (ctx: CanvasRenderingContext2D, shape: Shape) => {
     ctx.stroke();
   }
 }
-export const initDraw = async (canvas: HTMLCanvasElement, getTool: () => string, roomId: string) => {
+export const initDraw = async (
+  canvas: HTMLCanvasElement,
+  getTool: () => string,
+  roomId: string
+): Promise<DrawActions> => {
   let existingShapes: Shape[] = await getExistingShapes(roomId);
   const ctx = canvas.getContext("2d");
   if (!ctx) {
-    return;
+    throw new Error("Canvas context not found.");
   }
   const handleResize = () => {
     canvas.width = window.innerWidth;
@@ -75,7 +79,7 @@ export const initDraw = async (canvas: HTMLCanvasElement, getTool: () => string,
       sendWSMessage({
         type: 'chat',
         message: JSON.stringify(newShape),
-        roomId: roomId,
+        roomId: roomId
       })
     }
   }
@@ -119,6 +123,8 @@ export const initDraw = async (canvas: HTMLCanvasElement, getTool: () => string,
     },
     handleAddRemoteShape: (s: Shape) => {
       existingShapes.push(s);
+      ctx.strokeStyle = "rgba(255, 255, 255)";
+      ctx.fillStyle = "rgba(10, 10, 10)";
       drawShape(ctx, s);
     }
   }

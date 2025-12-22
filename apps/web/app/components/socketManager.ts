@@ -1,8 +1,8 @@
-import { IncomingWsData, WSMessage } from "@repo/schema";
+import { IncomingWsData } from "@repo/schema";
 
 let ws: WebSocket | null = null;
 
-export const intitWebsocket = (url: string, onMessage: (data: IncomingWsData) => void): WebSocket | null => {
+export const initWebsocket = (url: string, roomId: string, onMessage: (data: IncomingWsData) => void): WebSocket | null => {
   if(typeof window === 'undefined') return null;
   if(ws) ws.close();
 
@@ -10,6 +10,10 @@ export const intitWebsocket = (url: string, onMessage: (data: IncomingWsData) =>
 
   ws.onopen = () => {
     console.log("Socket connected.")
+    ws?.send(JSON.stringify({
+      type: 'join_room',
+      roomId: roomId
+    }))
   }
 
   ws.onmessage = (event: MessageEvent) => {
@@ -21,13 +25,14 @@ export const intitWebsocket = (url: string, onMessage: (data: IncomingWsData) =>
     }
   }
 
-  ws.onclose = () => { ws = null }
+  ws.onclose = () => { 
+    ws = null
+  }
 
   return ws;
 }
 
-
-export const sendWSMessage = (message: WSMessage) => {
+export const sendWSMessage = (message: IncomingWsData) => {
   if(ws && ws.readyState === WebSocket.OPEN) {
     ws.send(JSON.stringify(message));
   } else {
