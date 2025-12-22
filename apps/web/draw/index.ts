@@ -140,7 +140,7 @@ const clearCanvas = (existingShapes: Shape[], canvas: HTMLCanvasElement, ctx: Ca
   })
 }
 
-const getExistingShapes = async (roomId: string) => {
+const getExistingShapes = async (roomId:  string) => {
   console.log("Getting existing shapes")
   const res = await axios.get(`http://localhost:8080/api/v1/chat/${roomId}`, {
     headers: {
@@ -148,6 +148,7 @@ const getExistingShapes = async (roomId: string) => {
     }
   });
   const messages = res.data.messages;
+  console.log("Messages is :", messages);
 
   const shapes = messages.map((x: { message: string }) => {
     const messageData = JSON.parse(x.message);

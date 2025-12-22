@@ -1,6 +1,6 @@
 "use client";
 import { useEffect, useRef, useState } from "react";
-import { drawShape, initDraw } from "../../../draw";
+import { initDraw } from "../../../draw";
 import { useParams } from "next/navigation";
 import useWebSocket from "../../components/hooks/useWebsocket";
 import { sendWSMessage } from "../../components/socketManager";
@@ -37,19 +37,19 @@ const Canvas = () => {
 
     if (canvasRef.current && isConnected) {
       const canvas = canvasRef.current;
-      initDraw(canvas, () => toolRef.current, roomId)
-        .then((actions) => {
-          if(!canvasRef.current) {
-            actions.cleanup();
-            return;
-          } 
-            drawActionsRef.current = actions;
-            actionInstance = actions;
-        })
       sendWSMessage({
         type: 'join_room',
         roomId: roomId,
       })
+      initDraw(canvas, () => toolRef.current, roomId)
+        .then((actions) => {
+          if (!canvasRef.current) {
+            actions.cleanup();
+            return;
+          }
+          drawActionsRef.current = actions;
+          actionInstance = actions;
+        })
 
       return () => {
         if (actionInstance) {

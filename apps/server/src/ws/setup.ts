@@ -2,6 +2,7 @@ import { WebSocket, WebSocketServer } from "ws";
 import jwt, { JwtPayload } from 'jsonwebtoken';
 import http, { Server } from 'http';
 import { chatQueue } from "./queues/chat.queue";
+import { PrismaClient } from "@prisma/client/extension";
 
 type User = {
   ws: WebSocket,
@@ -12,20 +13,20 @@ type User = {
 
 const users: User[] = [];
 
-const checkUser = (token: string):  Pick<User, 'userId' | 'username'> | null => {
+const checkUser = (token: string): Pick<User, 'userId' | 'username'> | null => {
   try {
-    const decoded = jwt.verify(token, process.env.JWT_SECRET!) as JwtPayload & { id: string; username: string};
-  
-    if(typeof decoded === "string") {
+    const decoded = jwt.verify(token, process.env.JWT_SECRET!) as JwtPayload & { id: string; username: string };
+
+    if (typeof decoded === "string") {
       return null;
     }
-  
+
     if (!decoded || typeof decoded !== "object") {
       console.log("WS rejected, invalid token.")
       return null;
     }
-  
-    return  {
+
+    return {
       userId: decoded.id,
       username: decoded.username
     }
@@ -48,7 +49,7 @@ export const setupWs = (server: Server) => {
       const token = queryParams.get('token') || "";
       const userAuthentication = checkUser(token);
 
-      if(!userAuthentication) {
+      if (!userAuthentication) {
         ws.close();
         return;
       }
@@ -56,28 +57,37 @@ export const setupWs = (server: Server) => {
         userId: userAuthentication.userId,
         ws,
         rooms: []
-      } 
+      }
       users.push(currentUser)
 
       ws.on("message", async function message(data) {
         console.log("Websocket connection successfully setup.")
         const parsedData = JSON.parse(data as unknown as string)
 
-        if(parsedData.type === 'join_room') {
-          if(!currentUser.rooms.includes(parsedData.roomId)){
+        if (parsedData.type === 'join_room') {
+          const roomId = Number(parsedData.roomId)
+          if (!currentUser.rooms.includes(parsedData.roomId)) {
             currentUser.rooms.push(parsedData.roomId)
           }
+          await PrismaClient.room.upsert({
+            where: { id: roomId },
+            update: {},
+            create: {
+              id: roomId,
+              slug: roomId.toString()
+            }
+          });
         }
 
-        if(parsedData.type === 'leave_room') {
-          currentUser.rooms = currentUser.rooms.filter(id => id !==parsedData.roomId)
+        if (parsedData.type === 'leave_room') {
+          currentUser.rooms = currentUser.rooms.filter(id => id !== parsedData.roomId)
         }
 
-        if(parsedData.type === 'chat') {
+        if (parsedData.type === 'chat') {
           const { roomId, message } = parsedData
 
           users.forEach(user => {
-            if(user.rooms.includes(roomId)) {
+            if (user.rooms.includes(roomId)) {
               user.ws.send(JSON.stringify({
                 type: 'chat',
                 message,
@@ -91,14 +101,14 @@ export const setupWs = (server: Server) => {
             roomId,
             message
           },
-        {
-          attempts: 3,
-          backoff: {
-            type: "exponential",
-            delay: 5000
-          }
-        }
-        ); 
+            {
+              attempts: 3,
+              backoff: {
+                type: "exponential",
+                delay: 5000
+              }
+            }
+          );
           console.log("Job added to queue.", res)
         }
       });
