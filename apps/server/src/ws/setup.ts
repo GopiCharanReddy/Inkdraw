@@ -1,8 +1,8 @@
 import { WebSocket, WebSocketServer } from "ws";
 import jwt, { JwtPayload } from 'jsonwebtoken';
-import http, { Server } from 'http';
+import { Server } from 'http';
 import { chatQueue } from "./queues/chat.queue";
-import { PrismaClient } from "@prisma/client/extension";
+import prismaClient from "@repo/db";
 
 type User = {
   ws: WebSocket,
@@ -69,12 +69,13 @@ export const setupWs = (server: Server) => {
           if (!currentUser.rooms.includes(parsedData.roomId)) {
             currentUser.rooms.push(parsedData.roomId)
           }
-          await PrismaClient.room.upsert({
+          await prismaClient.room.upsert({
             where: { id: roomId },
             update: {},
             create: {
               id: roomId,
-              slug: roomId.toString()
+              slug: roomId.toString(),
+              adminId: userAuthentication.userId
             }
           });
         }
@@ -109,7 +110,7 @@ export const setupWs = (server: Server) => {
               }
             }
           );
-          console.log("Job added to queue.", res)
+          console.log("Job added to queue.")
         }
       });
       ws.on("close", () => {

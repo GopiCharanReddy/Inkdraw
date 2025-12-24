@@ -150,8 +150,8 @@ const getExistingShapes = async (roomId:  string) => {
   const messages = res.data.messages;
   console.log("Messages is :", messages);
 
-  const shapes = messages.map((x: { message: string }) => {
-    const messageData = JSON.parse(x.message);
+  const shapes = messages.map((x: { content: string }) => {
+    const messageData = JSON.parse(x.content);
     return messageData;
   })
   return shapes;

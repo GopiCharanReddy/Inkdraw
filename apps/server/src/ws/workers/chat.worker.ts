@@ -7,7 +7,6 @@ export const chatWorker = new Worker(
   "chatQueue",
   async (job) => {
     const { userId, roomId, message } = job.data;
-    console.log(`Processing Job ${job}: User: ${userId}, RoomID: ${roomId}`)
     try {
       
     await prismaClient.message.create({
