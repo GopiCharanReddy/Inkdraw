@@ -1,4 +1,4 @@
-import z, { number } from "zod";
+import z from "zod";
 
 export const UserSchema = z.object({
   username: z
@@ -31,7 +31,7 @@ export const FetchMessages = z.object({
 
 
 export type Shape = | {
-  type: "rect" | "diamond";
+  type: "rectangle" | "diamond" | "rhombus" | "triangle" | "hexagon" | "star" | "heart" | "line";
   x: number;
   y: number;
   width: number;
@@ -42,7 +42,21 @@ export type Shape = | {
   centerX: number;
   centerY: number;
   radius: number;
-}
+} |
+{
+  type: 'pencil'
+  points: {
+    x: number;
+    y: number
+  }[]
+} |
+{
+  type: "text" | "note" | "image";
+  x: number;
+  y: number;
+  content?: string; // For text/notes
+  src?: string;     // For images
+};
 
 export type WSMessage = { roomId: string } & (
   | { type: 'join_room' }
