@@ -1,10 +1,10 @@
 import axios from "axios";
-import { DrawActions, Shape } from '@repo/schema';
+import { DraftShape, DrawActions, Shape } from '@repo/schema';
 import { sendWSMessage } from "../components/socketManager";
 import { useCameraStore, useShapeStore, useToolStore } from "../components/store/store";
 import { iconLibrary } from "../components/resources/icons";
 
-export const drawShape = (ctx: CanvasRenderingContext2D, shape: Shape) => {
+export const drawShape = (ctx: CanvasRenderingContext2D, shape: DraftShape) => {
   ctx.beginPath()
   if (shape.type === 'rectangle') {
     ctx.strokeRect(shape.x, shape.y, shape.width, shape.height);
@@ -38,12 +38,16 @@ export const initDraw = async (
   canvas: HTMLCanvasElement,
   roomId: string
 ): Promise<DrawActions> => {
-  let existingShapes: Shape[] = await getExistingShapes(roomId);
+  const { setShapes } = useShapeStore.getState();
+  const initialShapes = await getExistingShapes(roomId)
+  setShapes(initialShapes);
   const ctx = canvas.getContext("2d");
   if (!ctx) {
     throw new Error("Canvas context not found.");
   }
   let currentPencilPoints: { x: number, y: number }[] = [];
+  let tailPoints: { x: number, y: number }[] = [];
+  const tailLength = 5;
 
   // resets the camera
   const render = () => {
@@ -54,9 +58,16 @@ export const initDraw = async (
     ctx.save();
     ctx.translate(offsetX, offsetY);
     ctx.scale(scale, scale);
-    existingShapes.forEach((shape) => drawShape(ctx, shape));
+    ctx.strokeStyle = "rgba(0, 0, 0)"
+    ctx.lineWidth = 2 / scale;
+    shapes.forEach((shape) => drawShape(ctx, shape));
     ctx.restore();
+    if(tailPoints.length > 0) {
+      drawTail(ctx, tailPoints, offsetX, offsetY, scale)
+    }
   }
+
+  const unsubscribeShapes = useShapeStore.subscribe(render);
   // handling window resize
   const handleResize = () => {
     canvas.width = window.innerWidth;
@@ -73,43 +84,49 @@ export const initDraw = async (
 
   const onMouseDown = (e: MouseEvent) => {
     const { offsetX, offsetY, scale } = useCameraStore.getState();
+    const { activeTool } = useToolStore.getState();
     clicked = true;
     // convert screen coordinates to world coordinates
     startX = (e.clientX - offsetX) / scale;
     startY = (e.clientY - offsetY) / scale;
 
-    const { activeTool } = useToolStore.getState();
     if (activeTool === 'pencil') {
       currentPencilPoints = [{ x: startX, y: startY }]
     }
+    ctx.lineWidth = 2 / scale;
   }
+
   const onMouseUp = (e: MouseEvent) => {
     clicked = false;
     const { activeTool } = useToolStore.getState();
     const { offsetX, offsetY, scale } = useCameraStore.getState();
     const selectedIcon = iconLibrary.find(icon => icon.name === activeTool);
     const shapeType = selectedIcon?.shapeType
-
-    if (shapeType === 'hand') return;
+    
+    if (shapeType === 'hand' || shapeType === 'eraser'){
+      tailPoints = [];
+      render();
+      return;
+    }
     // calc current mouse position in world space
     const currentX = (e.clientX - offsetX) / scale;
     const currentY = (e.clientY - offsetY) / scale;
     const width = currentX - startX;
     const height = currentY - startY;
-
+    
+    
     render();
-
-    let newShape: Shape | null = null;
+    let newShape: DraftShape | null = null;
 
     if (shapeType === 'circle') {
       const radius = Math.hypot(width, height)
       newShape = {
-        type: "circle",
+        type: shapeType,
         centerX: startX,
         centerY: startY,
         radius
       }
-    } else if (shapeType === 'rectangle' || shapeType === 'diamond') {
+    } else if (shapeType === 'rectangle' || shapeType === 'diamond' || shapeType === 'rhombus') {
       newShape = {
         type: shapeType,
         x: startX,
@@ -133,37 +150,67 @@ export const initDraw = async (
       currentPencilPoints = [];
     }
     if (newShape) {
-      useShapeStore.getState().addShape(newShape)
+      const shapeWithId  = {
+        ...newShape,
+        id: crypto.randomUUID()
+      };
+      useShapeStore.getState().addShape(shapeWithId)
 
       sendWSMessage({
         type: 'chat',
-        message: JSON.stringify(newShape),
+        message: JSON.stringify(shapeWithId),
         roomId: roomId
       })
     }
     render();
   }
+
   const onMouseMove = (e: MouseEvent) => {
     if (!clicked) return;
 
     const { activeTool } = useToolStore.getState();
     const { offsetX, offsetY, scale, setOffset } = useCameraStore.getState();
-    const selectedIcon = iconLibrary.find(icon => icon.name === activeTool);
-    let shapeType = selectedIcon?.shapeType
-
-    if (shapeType === 'hand') {
-      setOffset(e.clientX - startX * scale, e.clientY - startY * scale);
-      render();
-      return;
-    }
-    // handle shape drawing preview drawing background shapes first
-    render();
+    const { shapes, deleteShape } = useShapeStore.getState();
+    const shapeType = iconLibrary.find(icon => icon.name === activeTool)?.shapeType;
+    
+    
     // calc current mouse position in world space
     const currentX = (e.clientX - offsetX) / scale;
     const currentY = (e.clientY - offsetY) / scale;
     const width = currentX - startX;
     const height = currentY - startY;
 
+    ctx.lineWidth = 2 / scale;
+    if (shapeType === 'hand') {
+      setOffset(e.clientX - startX * scale, e.clientY - startY * scale);
+      render();
+      return;
+    }
+
+    if(shapeType === "eraser") {
+      tailPoints.push({ x: currentX, y: currentY })
+      if (tailPoints.length > tailLength) {
+        tailPoints.shift();
+      }
+
+      const shapeToDelete = shapes.find(s => isPointInShape(currentX, currentY, s))
+      if (shapeToDelete) {
+        deleteShape(shapeToDelete.id)
+        sendWSMessage({
+          type: 'chat',
+          message: JSON.stringify({
+            ...shapeToDelete,
+            isDeleted: true // Add this flag
+          }),
+          roomId
+        });
+      }
+      drawTail(ctx, tailPoints, offsetX, offsetY, scale);
+      render();
+      return;
+    }
+
+    // handle shape drawing preview drawing background shapes first
     render();
     ctx.save();
     ctx.translate(offsetX, offsetY);
@@ -173,12 +220,12 @@ export const initDraw = async (
     if (shapeType === 'circle') {
       const radius = Math.hypot(width, height)
       drawShape(ctx, {
-        type: 'circle',
+        type: shapeType,
         centerX: startX,
         centerY: startY,
         radius,
       })
-    } else if (shapeType === 'diamond' || shapeType === 'rectangle') {
+    } else if (shapeType === 'diamond' || shapeType === 'rectangle' || shapeType === 'rhombus') {
       drawShape(ctx, {
         type: shapeType,
         x: startX,
@@ -196,19 +243,14 @@ export const initDraw = async (
       })
     } else if (shapeType === 'pencil') {
       currentPencilPoints.push({ x: currentX, y: currentY })
-      render();
-      ctx.save();
-      ctx.translate(offsetX, offsetY);
-      ctx.scale(scale, scale);
       drawShape(ctx, {
         type: 'pencil',
         points: currentPencilPoints
-      }
-      )
-      ctx.restore();
+      })
     }
     ctx.restore();
   }
+
   const onWheel = (e: WheelEvent) => {
     e.preventDefault();
     const { offsetX, offsetY, scale, setOffset, setScale } = useCameraStore.getState();
@@ -228,7 +270,7 @@ export const initDraw = async (
     } else {
       setOffset(offsetX - e.deltaX, offsetY - e.deltaY)
     }
-    render
+    render();
   }
 
   canvas.addEventListener('mousedown', onMouseDown);
@@ -238,13 +280,26 @@ export const initDraw = async (
 
   return {
     cleanup: () => {
+      unsubscribeShapes();
       window.removeEventListener("resize", handleResize);
       canvas.removeEventListener("mousedown", onMouseDown);
       canvas.removeEventListener("mouseup", onMouseUp);
       canvas.removeEventListener("mousemove", onMouseMove);
     },
     handleAddRemoteShape: (s: Shape) => {
-      existingShapes.push(s);
+      const { shapes } = useShapeStore.getState();
+      if(s.isDeleted) {
+        useShapeStore.setState({
+          shapes: shapes.filter(existing => existing.id !== s.id)
+        })
+      } else {
+        if(!shapes.find((existing) => existing.id === s.id)) {
+          useShapeStore.setState({ shapes: [...shapes, s]})
+        }
+      }
+      useShapeStore.setState((state) => ({
+        shapes: [...state.shapes, s]
+      }))
       render();
     }
   }
@@ -269,4 +324,86 @@ const getExistingShapes = async (roomId: string) => {
     console.error("Error fetching shapes: ", error);
     return [];
   }
+}
+
+
+const isPointInShape = (x: number, y: number, shape: Shape): boolean => {
+  const threshold = 5;
+  //  "rectangle" | "diamond" | "rhombus" | "triangle" | "hexagon" | "star" | "heart" | "line" | "laser";
+  if (shape.type === 'rectangle') {
+    const left = Math.min(shape.x, shape.x + shape.width)
+    const right = Math.max(shape.x, shape.x + shape.width)
+    const top = Math.min(shape.y, shape.y + shape.height)
+    const bottom = Math.max(shape.y, shape.y + shape.height)
+    return x >= left && x <= right && y >= top && y <= bottom;
+  }
+  if (shape.type === 'rhombus' || shape.type === 'diamond') {
+    const centerX = shape.x + shape.width / 2
+    const centerY = shape.y + shape.height / 2
+    const dx = Math.abs(x - centerX) / (shape.width / 2);
+    const dy = Math.abs(y - centerY) / (shape.height / 2);
+    return (dx + dy) <= 1;
+  }
+  if (shape.type === 'circle') {
+    const distance = Math.hypot(x - shape.centerX, y - shape.centerY);
+    return distance <= shape.radius;
+  }
+
+  if (shape.type === 'pencil') {
+    return shape.points.some((p, i) => {
+      if (i == 0) return false;
+      const prev = shape.points[i - 1];
+      return distToSegment({ x, y }, prev, p) < threshold;
+    })
+  }
+  if (shape.type === 'line') {
+    return distToSegment({ x, y }, { x: shape.x, y: shape.y }, { x: shape.width, y: shape.height }) < threshold
+  }
+  return false;
+}
+type HitDetect = {
+  p: {
+    x: number,
+    y: number
+  }
+  v: {
+    x: number,
+    y: number
+  }
+  w: {
+    x: number,
+    y: number
+  }
+}
+const distToSegment = (p: any, v: any, w: any) => {
+  const l2 = Math.pow(v.x - w.x, 2) + Math.pow(v.y - w.y, 2);
+  if (l2 == 0) return Math.hypot(p.x - v.x, p.y - v.y);
+  let t = ((p.x - v.x) * (w.x - v.x) + (p.y - v.y) * (w.y - v.y)) / l2;
+  t = Math.max(0, Math.min(1, t));
+  return Math.hypot(p.x - (v.x + t * (w.x - v.x)), p.y - (v.y + t * (w.y - v.y)));
+}
+
+const drawTail = (ctx: CanvasRenderingContext2D, tailPoints: { x: number, y: number }[], offsetX: number, offsetY: number, scale: number) => {
+  if (tailPoints.length < 2) return;
+  ctx.save();
+  ctx.translate(offsetX, offsetY);
+  ctx.scale(scale, scale);
+
+  ctx.beginPath();
+  ctx.moveTo(tailPoints[0]!.x, tailPoints[0]!.y);
+
+  for (let i = 0; i < tailPoints.length; i++) {
+    ctx.lineTo(tailPoints[i]!.x, tailPoints[i]!.y)
+  }
+
+  ctx.strokeStyle = "rgba(180, 180, 180, 0.5)";
+  ctx.lineWidth = 6 / scale;
+  ctx.lineCap = "round";
+  ctx.lineJoin = "round";
+
+  ctx.shadowBlur = 2;
+  ctx.shadowColor = "rgba(245, 245, 245, 0.7)";
+
+  ctx.stroke();
+  ctx.restore();
 }

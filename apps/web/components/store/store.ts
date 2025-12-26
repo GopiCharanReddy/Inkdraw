@@ -10,13 +10,13 @@ type CameraState = {
   offsetY: number,
   scale: number
   setOffset: (x: number, y: number) => void,
-  setScale: (s: number) => void, 
+  setScale: (s: number) => void,
   resetView: () => void,
 }
 
 export const useToolStore = create<ToolState>((set) => ({
   activeTool: 'rectangleIcon',
-  setSelectedTool: (toolName) => set({activeTool: toolName})
+  setSelectedTool: (toolName) => set({ activeTool: toolName })
 }))
 
 export const useCameraStore = create<CameraState>((set) => ({
@@ -44,24 +44,27 @@ type ShapeState = {
 
   setShapes: (shapes: Shape[]) => void,
   addShape: (shape: Shape) => void,
-  undo: () => void
+  undo: () => void,
+  redo: () => void,
+  deleteShape: (id: string) => void
+  clearHistory: () => void
 }
 
 export const useShapeStore = create<ShapeState>((set) => ({
   shapes: [],
   past: [],
   future: [],
-  setShapes: (shapes) => set({ shapes, past: [], future: []}),
+  setShapes: (shapes) => set({ shapes, past: [], future: [] }),
   addShape: (newShape) => set((state) => ({
     past: [...state.past, state.shapes],
     shapes: [...state.shapes, newShape],
     future: [],
   })),
   undo: () => set(state => {
-    if(state.past.length === 0) return state;
+    if (state.past.length === 0) return state;
 
-    const previous = state.past[state.past.length -1];
-    const newPast = state.past.slice(0, state.past.length -1);
+    const previous = state.past[state.past.length - 1];
+    const newPast = state.past.slice(0, state.past.length - 1);
 
     return {
       past: newPast,
@@ -70,7 +73,7 @@ export const useShapeStore = create<ShapeState>((set) => ({
     }
   }),
   redo: () => set(state => {
-    if(state.future.length === 0) return state;
+    if (state.future.length === 0) return state;
 
     const next = state.future[0];
     const newFuture = state.future.slice(1);
@@ -81,5 +84,10 @@ export const useShapeStore = create<ShapeState>((set) => ({
       future: newFuture,
     }
   }),
-    clearHistory: () => set({ past: [], future: []})
+  deleteShape: (id: string) => set((state) => ({
+    past: [...state.past, state.shapes],
+    shapes: state.shapes.filter(s => s.id !== id),
+    future: []
+  })),
+  clearHistory: () => set({ past: [], future: [] })
 }))

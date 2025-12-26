@@ -6,6 +6,7 @@ import useWebSocket from "../../../components/hooks/useWebsocket";
 import { sendWSMessage } from "../../../components/socketManager";
 import { DrawActions, Shape } from "@repo/schema";
 import ToolBar from "../../../components/Toolbar/ToolBar";
+import { useShapeStore } from "../../../components/store/store";
 
 const Canvas = () => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -64,13 +65,40 @@ const Canvas = () => {
 
         if (data.type === 'chat') {
           const shapeData: Shape = typeof data.message === 'string' ? JSON.parse(data.message) : data.message;
-          drawActionsRef.current.handleAddRemoteShape(shapeData);
+
+          if(shapeData.isDeleted) {
+            useShapeStore.setState((state) => ({
+              shapes: state.shapes.filter(s => {
+                return JSON.stringify(s) !== JSON.stringify({ ...shapeData, isDeleted: undefined})
+              })
+            }));
+          } else {
+            drawActionsRef.current.handleAddRemoteShape(shapeData);
+          }
         }
       } catch (e) {
         console.error("Error drawing incoming shape:", e);
       }
     }
   }, [message]);
+
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      const isCtrl = e.ctrlKey || e.metaKey;
+
+      if (isCtrl && e.key.toLowerCase() === 'z') {
+        if (e.shiftKey) {
+          console.log('redoing')
+          useShapeStore.getState().redo();
+        } else {
+          console.log('undo')
+          useShapeStore.getState().undo();
+        }
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, []);
 
   if (!token) return <div className="h-screen text-white p-4">Authenticating...</div>;
 
@@ -80,7 +108,7 @@ const Canvas = () => {
         {isConnected ?
           <div>
             <canvas className="block w-full h-full" ref={canvasRef}></canvas>
-              <ToolBar />
+            <ToolBar />
           </div>
           :
           <div className="w-fit h-fit p-2 bg-white">

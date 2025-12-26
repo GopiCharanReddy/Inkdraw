@@ -31,32 +31,44 @@ export const FetchMessages = z.object({
 
 
 export type Shape = | {
-  type: "rectangle" | "diamond" | "rhombus" | "triangle" | "hexagon" | "star" | "heart" | "line";
+  id: string,
+  type: "rectangle" | "diamond" | "rhombus" | "triangle" | "hexagon" | "star" | "heart" | "line" | "laser";
   x: number;
   y: number;
   width: number;
   height: number;
+  isDeleted?: boolean;
 } |
 {
+  id: string,
   type: 'circle';
   centerX: number;
   centerY: number;
   radius: number;
+  isDeleted?: boolean
 } |
 {
-  type: 'pencil'
+  id: string,
+  type: 'pencil' | 'eraser'
   points: {
     x: number;
     y: number
   }[]
+  isDeleted?: boolean
 } |
 {
+  id: string,
   type: "text" | "note" | "image";
   x: number;
   y: number;
   content?: string; // For text/notes
   src?: string;     // For images
-};
+  isDeleted?: boolean
+}
+
+type DistributiveOmit<T, K extends keyof any> = T extends any ? Omit<T, K> : never;
+
+export type DraftShape = DistributiveOmit<Shape, 'id'>;
 
 export type WSMessage = { roomId: string } & (
   | { type: 'join_room' }
