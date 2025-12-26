@@ -49,12 +49,8 @@ export const setupWs = (server: Server) => {
       const token = queryParams.get('token') || "";
       const userAuthentication = checkUser(token);
 
-      if (!userAuthentication) {
-        ws.close();
-        return;
-      }
       const currentUser: User = {
-        userId: userAuthentication.userId,
+        userId: userAuthentication?.userId || `GUEST_${Math.random().toString(36).substring(2, 9)}`,
         ws,
         rooms: []
       }
@@ -69,15 +65,17 @@ export const setupWs = (server: Server) => {
           if (!currentUser.rooms.includes(parsedData.roomId)) {
             currentUser.rooms.push(parsedData.roomId)
           }
-          await prismaClient.room.upsert({
-            where: { id: roomId },
-            update: {},
-            create: {
-              id: roomId,
-              slug: roomId.toString(),
-              adminId: userAuthentication.userId
-            }
-          });
+          if(userAuthentication){
+            await prismaClient.room.upsert({
+              where: { id: roomId },
+              update: {},
+              create: {
+                id: roomId,
+                slug: roomId.toString(),
+                adminId: userAuthentication?.userId
+              }
+            });
+          }
         }
 
         if (parsedData.type === 'leave_room') {
@@ -85,7 +83,7 @@ export const setupWs = (server: Server) => {
         }
 
         if (parsedData.type === 'chat') {
-          const { roomId, message } = parsedData
+          const { roomId, message, shapeId, isDeleted } = parsedData
 
           users.forEach(user => {
             if (user.rooms.includes(roomId)) {
@@ -93,14 +91,18 @@ export const setupWs = (server: Server) => {
                 type: 'chat',
                 message,
                 roomId,
+                shapeId,
+                isDeleted: isDeleted || false
               }))
             }
           })
 
           const res = await chatQueue.add("saveMessage", {
-            userId: userAuthentication.userId,
+            userId: userAuthentication?.userId || null,
             roomId,
-            message
+            message,
+            shapeId,
+            isDeleted: isDeleted || false
           },
             {
               attempts: 3,

@@ -37,8 +37,10 @@ model Room{
 model Message{
   id Int @id @default(autoincrement())
   content String
+  shapeId String @unique
   roomId Int
+  isDeleted Boolean @default(false)
   room Room @relation(fields: [roomId], references: [id])
-  userId String
-  user User @relation(fields: [userId], references: [id])
+  userId String?
+  user User? @relation(fields: [userId], references: [id])
 }

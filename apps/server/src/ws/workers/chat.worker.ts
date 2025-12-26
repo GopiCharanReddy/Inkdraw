@@ -6,14 +6,21 @@ import { UnrecoverableError } from "bullmq";
 export const chatWorker = new Worker(
   "chatQueue",
   async (job) => {
-    const { userId, roomId, message } = job.data;
+    const { userId, roomId, message, shapeId, isDeleted } = job.data;
     try {
       
-    await prismaClient.message.create({
-      data: {
+    await prismaClient.message.upsert({
+      where: { shapeId },
+      update: {
+        content: message,
+        isDeleted: isDeleted || false
+      },
+      create: {
         content: message,
         userId,
-        roomId: Number(roomId)
+        roomId: Number(roomId),
+        shapeId,
+        isDeleted: isDeleted || false
       }
     })
     } catch (error) {

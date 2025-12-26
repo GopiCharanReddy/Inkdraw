@@ -4,8 +4,7 @@ import { Input } from '@repo/ui/input'
 import { Button } from '@repo/ui/button'
 import axios from 'axios'
 import { UserSchema } from '@repo/schema'
-import { useParams, useRouter } from 'next/navigation'
-import {ZodError} from 'zod';
+import { useRouter } from 'next/navigation'
 export const AuthPage = ({ isSignin }: { isSignin: boolean }) => {
   const [username, setUsername] = useState('');
   const [email, setEmail] = useState('');
@@ -31,7 +30,7 @@ export const AuthPage = ({ isSignin }: { isSignin: boolean }) => {
     try {
       const res = await axios.post(`${process.env.NEXT_PUBLIC_HTTP_URL}/api/v1/users/${isSignin ? 'signin' : 'signup'}`, result.data)
       localStorage.setItem('token',`Bearer ${res.data.token}`);
-      router.push(`canvas/${Math.floor(Math.random() * 100)}`)
+      router.push(`canvas/${crypto.randomUUID()}`)
     } catch (error: any) {
       setError(error.message as string || "An error occurred.");
     }

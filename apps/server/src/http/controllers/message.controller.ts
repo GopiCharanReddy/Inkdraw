@@ -13,7 +13,8 @@ export const loadMessages = async (req: Request, res: Response) => {
   try {
     const messages = await prismaClient.message.findMany({
       where: {
-        roomId: parsedData.data.roomId,
+        roomId: Number(parsedData.data.roomId),
+        isDeleted: false
       }, orderBy: {
         id: 'desc'
       },
