@@ -66,14 +66,20 @@ const Canvas = () => {
         if (data.type === 'chat') {
           const shapeData: Shape = typeof data.message === 'string' ? JSON.parse(data.message) : data.message;
 
-          if(shapeData.isDeleted) {
+          if (shapeData.isDeleted) {
             useShapeStore.setState((state) => ({
-              shapes: state.shapes.filter(s => {
-                return JSON.stringify(s) !== JSON.stringify({ ...shapeData, isDeleted: undefined})
-              })
+              shapes: state.shapes.filter(s => s.id !== shapeData.id)
             }));
           } else {
-            drawActionsRef.current.handleAddRemoteShape(shapeData);
+            const { shapes } = useShapeStore.getState();
+            const exists = shapes.find(s => s.id === shapeData.id)
+            if (exists) {
+              useShapeStore.setState({
+                shapes: shapes.map(s => s.id === shapeData.id ? shapeData : s)
+              })
+            } else {
+              drawActionsRef.current.handleAddRemoteShape(shapeData);
+            }
           }
         }
       } catch (e) {
@@ -92,6 +98,15 @@ const Canvas = () => {
           useShapeStore.getState().redo();
         } else {
           console.log('undo')
+          const lastShape = useShapeStore.getState().shapes[useShapeStore.getState().shapes.length - 1];
+          sendWSMessage({
+            type: 'chat',
+            message: JSON.stringify({
+              ...lastShape,
+              isDeleted: true
+            }),
+            roomId: roomId
+          })
           useShapeStore.getState().undo();
         }
       }

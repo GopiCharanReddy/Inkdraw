@@ -32,7 +32,7 @@ export const FetchMessages = z.object({
 
 export type Shape = | {
   id: string,
-  type: "rectangle" | "diamond" | "rhombus" | "triangle" | "hexagon" | "star" | "heart" | "line" | "laser";
+  type: "rectangle" | "diamond" | "rhombus" | "triangle" | "hexagon" | "star" | "heart" | "line" | "laser" | "select";
   x: number;
   y: number;
   width: number;
@@ -62,6 +62,7 @@ export type Shape = | {
   x: number;
   y: number;
   content?: string; // For text/notes
+  fontSize?: number
   src?: string;     // For images
   isDeleted?: boolean
 }

@@ -32,6 +32,11 @@ export const drawShape = (ctx: CanvasRenderingContext2D, shape: DraftShape) => {
     ctx.lineCap = "round"
     ctx.lineJoin = "round"
     ctx.stroke();
+  } else if (shape.type === 'text') {
+    ctx.font = `${shape.fontSize}px sans-seriff`;
+    ctx.fillStyle = 'black'
+    ctx.textBaseline = 'top'
+    ctx.fillText(shape.content!, shape.x, shape.y);
   }
 }
 export const initDraw = async (
@@ -48,6 +53,15 @@ export const initDraw = async (
   let currentPencilPoints: { x: number, y: number }[] = [];
   let tailPoints: { x: number, y: number }[] = [];
   const tailLength = 5;
+  let clicked = false;
+  let existingTextId: string | null = null;
+  let selectedShapeId: string | null = null;
+  let dragOffset = { x: 0, y: 0 };
+  let isDragging = false;
+  // stored in world space
+  let startX = 0;
+  let startY = 0;
+
 
   // resets the camera
   const render = () => {
@@ -62,7 +76,7 @@ export const initDraw = async (
     ctx.lineWidth = 2 / scale;
     shapes.forEach((shape) => drawShape(ctx, shape));
     ctx.restore();
-    if(tailPoints.length > 0) {
+    if (tailPoints.length > 0) {
       drawTail(ctx, tailPoints, offsetX, offsetY, scale)
     }
   }
@@ -77,23 +91,102 @@ export const initDraw = async (
   window.addEventListener("resize", handleResize)
   handleResize();
 
-  let clicked = false;
-  // stored in world space
-  let startX = 0;
-  let startY = 0;
+  const handleKeyDown = (e: KeyboardEvent) => {
+    if (!existingTextId) return;
+    //prevents default of browser going back to previous page
+    if (e.key === 'Backspace' || e.key === ' ') e.preventDefault();
+
+    const store = useShapeStore.getState();
+    const shapes = store.shapes;
+    const shapeIndex = shapes.findIndex(s => s.id === existingTextId);
+    if (shapeIndex === -1) return;
+
+    const currentShape = shapes[shapeIndex];
+    if (currentShape && currentShape.type === 'text') {
+      let newText = currentShape.content!.replace('|', '');
+
+      if (e.key === 'Backspace') {
+        newText = newText.slice(0, -1);
+      } else if (e.key === 'Enter') {
+        existingTextId = null;
+        const finalShapes = [...store.shapes];
+        finalShapes[shapeIndex] = { ...currentShape, content: newText }
+        useShapeStore.setState({ shapes: finalShapes })
+        render();
+        return;
+      } else if (e.key.length === 1) {
+        newText += e.key;
+      }
+      const updatedShapes = [...store.shapes];
+      updatedShapes[shapeIndex] = { ...currentShape, content: newText + '|' };
+      useShapeStore.setState({
+        shapes: updatedShapes
+      })
+
+      sendWSMessage({
+        type: 'chat',
+        message: JSON.stringify(updatedShapes[shapeIndex]),
+        roomId
+      })
+    }
+  };
 
   const onMouseDown = (e: MouseEvent) => {
     const { offsetX, offsetY, scale } = useCameraStore.getState();
     const { activeTool } = useToolStore.getState();
+    const { shapes } = useShapeStore.getState();
+    const shapeType = iconLibrary.find(icon => icon.name === activeTool)?.shapeType;
     clicked = true;
     // convert screen coordinates to world coordinates
     startX = (e.clientX - offsetX) / scale;
     startY = (e.clientY - offsetY) / scale;
-
-    if (activeTool === 'pencil') {
+    if (shapeType === 'pencil') {
       currentPencilPoints = [{ x: startX, y: startY }]
+      ctx.lineWidth = 2 / scale;
     }
-    ctx.lineWidth = 2 / scale;
+
+    if (existingTextId) {
+      const store = useShapeStore.getState();
+      const idx = store.shapes.findIndex((s) => s.id === existingTextId);
+      if (idx !== -1) {
+        const shape = store.shapes[idx];
+        if (shape && shape.type === 'text') {
+          shapes[idx] = { ...shape, content: shape.content?.replace('|', '') };
+          useShapeStore.setState({ shapes });
+        }
+      }
+      existingTextId = null;
+    }
+
+    if (shapeType === 'select') {
+      const hit = [...shapes].reverse().find(s => isPointInShape(startX, startY, s));
+      if (hit) {
+        selectedShapeId = hit.id;
+        isDragging = true;
+        if ('x' in hit && 'y' in hit) {
+          dragOffset = { x: startX - hit.x, y: startY - hit.y }
+        } else if (hit.type === 'circle') {
+          dragOffset = { x: startX - hit.centerX, y: startY - hit.centerY }
+        }
+      } else {
+        selectedShapeId = null;
+      }
+    }
+
+    if (shapeType === 'text') {
+      const id = crypto.randomUUID();
+      const newShape: Shape = {
+        id,
+        type: 'text',
+        x: startX,
+        y: startY,
+        content: '|',
+        fontSize: 24 / scale,
+      }
+      existingTextId = id
+      useShapeStore.getState().addShape(newShape);
+      return;
+    }
   }
 
   const onMouseUp = (e: MouseEvent) => {
@@ -102,8 +195,8 @@ export const initDraw = async (
     const { offsetX, offsetY, scale } = useCameraStore.getState();
     const selectedIcon = iconLibrary.find(icon => icon.name === activeTool);
     const shapeType = selectedIcon?.shapeType
-    
-    if (shapeType === 'hand' || shapeType === 'eraser'){
+
+    if (shapeType === 'hand' || shapeType === 'eraser') {
       tailPoints = [];
       render();
       return;
@@ -113,11 +206,23 @@ export const initDraw = async (
     const currentY = (e.clientY - offsetY) / scale;
     const width = currentX - startX;
     const height = currentY - startY;
-    
-    
+
+
     render();
     let newShape: DraftShape | null = null;
 
+    if (isDragging && selectedShapeId) {
+      const shape = useShapeStore.getState().shapes.find(s => s.id === selectedShapeId);
+      if (shape) {
+        sendWSMessage({
+          type: 'chat',
+          message: JSON.stringify(shape),
+          roomId
+        })
+      }
+      isDragging = false;
+      return;
+    }
     if (shapeType === 'circle') {
       const radius = Math.hypot(width, height)
       newShape = {
@@ -150,9 +255,9 @@ export const initDraw = async (
       currentPencilPoints = [];
     }
     if (newShape) {
-      const shapeWithId  = {
+      const shapeWithId = {
         ...newShape,
-        id: crypto.randomUUID()
+        id: crypto.randomUUID(),
       };
       useShapeStore.getState().addShape(shapeWithId)
 
@@ -172,8 +277,8 @@ export const initDraw = async (
     const { offsetX, offsetY, scale, setOffset } = useCameraStore.getState();
     const { shapes, deleteShape } = useShapeStore.getState();
     const shapeType = iconLibrary.find(icon => icon.name === activeTool)?.shapeType;
-    
-    
+
+
     // calc current mouse position in world space
     const currentX = (e.clientX - offsetX) / scale;
     const currentY = (e.clientY - offsetY) / scale;
@@ -181,13 +286,31 @@ export const initDraw = async (
     const height = currentY - startY;
 
     ctx.lineWidth = 2 / scale;
+
+    if (shapeType === 'select' && isDragging && selectedShapeId) {
+      const store = useShapeStore.getState();
+      const shapes = [...store.shapes];
+      const idx = shapes.findIndex(s => s.id === selectedShapeId);
+      if (idx !== -1) {
+        const target = shapes[idx];
+        if (target) {
+          if ('x' in target && 'y' in target) {
+            shapes[idx] = { ...target, x: currentX - dragOffset.x, y: currentY - dragOffset.y };
+          } else if (target.type === 'circle') {
+            shapes[idx] = { ...target, centerX: currentX - dragOffset.x, centerY: currentY - dragOffset.y }
+          }
+          useShapeStore.setState({ shapes })
+        }
+        return;
+      }
+    }
     if (shapeType === 'hand') {
       setOffset(e.clientX - startX * scale, e.clientY - startY * scale);
       render();
       return;
     }
 
-    if(shapeType === "eraser") {
+    if (shapeType === "eraser") {
       tailPoints.push({ x: currentX, y: currentY })
       if (tailPoints.length > tailLength) {
         tailPoints.shift();
@@ -277,24 +400,26 @@ export const initDraw = async (
   canvas.addEventListener('mouseup', onMouseUp);
   canvas.addEventListener('mousemove', onMouseMove);
   canvas.addEventListener('wheel', onWheel, { passive: false })
+  window.addEventListener('keydown', handleKeyDown);
 
   return {
     cleanup: () => {
       unsubscribeShapes();
       window.removeEventListener("resize", handleResize);
+      window.removeEventListener('keydown', handleKeyDown);
       canvas.removeEventListener("mousedown", onMouseDown);
       canvas.removeEventListener("mouseup", onMouseUp);
       canvas.removeEventListener("mousemove", onMouseMove);
     },
     handleAddRemoteShape: (s: Shape) => {
       const { shapes } = useShapeStore.getState();
-      if(s.isDeleted) {
+      if (s.isDeleted) {
         useShapeStore.setState({
           shapes: shapes.filter(existing => existing.id !== s.id)
         })
       } else {
-        if(!shapes.find((existing) => existing.id === s.id)) {
-          useShapeStore.setState({ shapes: [...shapes, s]})
+        if (!shapes.find((existing) => existing.id === s.id)) {
+          useShapeStore.setState({ shapes: [...shapes, s] })
         }
       }
       useShapeStore.setState((state) => ({
@@ -353,29 +478,26 @@ const isPointInShape = (x: number, y: number, shape: Shape): boolean => {
     return shape.points.some((p, i) => {
       if (i == 0) return false;
       const prev = shape.points[i - 1];
-      return distToSegment({ x, y }, prev, p) < threshold;
+      return distToSegment({ x, y }, prev!, p) < threshold;
     })
   }
   if (shape.type === 'line') {
     return distToSegment({ x, y }, { x: shape.x, y: shape.y }, { x: shape.width, y: shape.height }) < threshold
   }
+  if (shape.type === 'text') {
+    const charWidth = shape.fontSize! * 0.6;
+    const width = (shape.content || "").replace('|', '').length * charWidth;
+    const height = shape.fontSize;
+    return x >= shape.x && x <= shape.x + width && y >= shape.y && y <= shape.y + height!
+  }
   return false;
 }
+
 type HitDetect = {
-  p: {
-    x: number,
-    y: number
-  }
-  v: {
-    x: number,
-    y: number
-  }
-  w: {
-    x: number,
-    y: number
-  }
+  x: number;
+  y: number
 }
-const distToSegment = (p: any, v: any, w: any) => {
+const distToSegment = (p: HitDetect, v: HitDetect, w: HitDetect) => {
   const l2 = Math.pow(v.x - w.x, 2) + Math.pow(v.y - w.y, 2);
   if (l2 == 0) return Math.hypot(p.x - v.x, p.y - v.y);
   let t = ((p.x - v.x) * (w.x - v.x) + (p.y - v.y) * (w.y - v.y)) / l2;

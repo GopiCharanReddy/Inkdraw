@@ -14,6 +14,19 @@ type CameraState = {
   resetView: () => void,
 }
 
+type ShapeState = {
+  shapes: Shape[],
+  past: Shape[][],
+  future: Shape[][],
+
+  setShapes: (shapes: Shape[]) => void,
+  addShape: (shape: Shape) => void,
+  undo: () => void,
+  redo: () => void,
+  deleteShape: (id: string) => void
+  clearHistory: () => void
+}
+
 export const useToolStore = create<ToolState>((set) => ({
   activeTool: 'rectangleIcon',
   setSelectedTool: (toolName) => set({ activeTool: toolName })
@@ -37,18 +50,6 @@ export const useCameraStore = create<CameraState>((set) => ({
   })
 }))
 
-type ShapeState = {
-  shapes: Shape[],
-  past: Shape[][],
-  future: Shape[][],
-
-  setShapes: (shapes: Shape[]) => void,
-  addShape: (shape: Shape) => void,
-  undo: () => void,
-  redo: () => void,
-  deleteShape: (id: string) => void
-  clearHistory: () => void
-}
 
 export const useShapeStore = create<ShapeState>((set) => ({
   shapes: [],
