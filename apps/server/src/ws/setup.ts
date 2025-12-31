@@ -68,7 +68,11 @@ export const setupWs = (server: Server) => {
           if(userAuthentication){
             await prismaClient.room.upsert({
               where: { id: roomId },
-              update: {},
+              update: {
+                id: roomId,
+                slug: roomId.toString(),
+                adminId: userAuthentication.userId
+              },
               create: {
                 id: roomId,
                 slug: roomId.toString(),
@@ -83,16 +87,19 @@ export const setupWs = (server: Server) => {
         }
 
         if (parsedData.type === 'chat') {
-          const { roomId, message, shapeId, isDeleted } = parsedData
-
+          const { roomId, message } = parsedData
+          const shapeData = JSON.parse(message);
+          const shapeId = shapeData.id;
+          const isDeleted = shapeData.isDeleted || false;
+          
           users.forEach(user => {
             if (user.rooms.includes(roomId)) {
               user.ws.send(JSON.stringify({
-                type: 'chat',
+                type: parsedData.type,
                 message,
                 roomId,
                 shapeId,
-                isDeleted: isDeleted || false
+                isDeleted,
               }))
             }
           })
@@ -102,7 +109,7 @@ export const setupWs = (server: Server) => {
             roomId,
             message,
             shapeId,
-            isDeleted: isDeleted || false
+            isDeleted
           },
             {
               attempts: 3,

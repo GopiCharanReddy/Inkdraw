@@ -30,7 +30,7 @@ export const AuthPage = ({ isSignin }: { isSignin: boolean }) => {
     try {
       const res = await axios.post(`${process.env.NEXT_PUBLIC_HTTP_URL}/api/v1/users/${isSignin ? 'signin' : 'signup'}`, result.data)
       localStorage.setItem('token',`Bearer ${res.data.token}`);
-      router.push(`canvas/${crypto.randomUUID()}`)
+      router.push(`canvas/${Math.floor(Math.random() * 100)}`)
     } catch (error: any) {
       setError(error.message as string || "An error occurred.");
     }

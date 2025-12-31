@@ -24,7 +24,7 @@ export const loadMessages = async (req: Request, res: Response) => {
       messages,
     })
   } catch (error) {
-    console.error("An error occurred while loading messages.")
+    console.error("An error occurred while loading messages.", error)
     res.status(500).json({
       error: "Error while loading messages."
     })

@@ -13,14 +13,14 @@ export const chatWorker = new Worker(
       where: { shapeId },
       update: {
         content: message,
-        isDeleted: isDeleted || false
+        isDeleted,
       },
       create: {
         content: message,
         userId,
         roomId: Number(roomId),
         shapeId,
-        isDeleted: isDeleted || false
+        isDeleted,
       }
     })
     } catch (error) {
