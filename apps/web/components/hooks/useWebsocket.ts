@@ -19,7 +19,7 @@ const useWebSocket = (url: string, roomId: string) => {
     }, 1000);
     
     return () => clearInterval(checkInterval);
-  }, [url])
+  }, [url, roomId])
 
   return {isConnected, message, sendWsMessage: sendWSMessage as (msg: WSMessage) => void}
 }

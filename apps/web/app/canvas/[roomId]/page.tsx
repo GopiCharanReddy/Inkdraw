@@ -10,21 +10,20 @@ import { useShapeStore } from "../../../components/store/store";
 
 const Canvas = () => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  const [token, setToken] = useState<string>();
+  const [token, setToken] = useState<string>("");
   const params = useParams();
   const roomId = params.roomId as string;
 
   useEffect(() => {
     const storedToken = localStorage.getItem('token');
     if (storedToken) {
-      setToken(storedToken.split('Bearer ')[1]);
+      setToken(storedToken.split('Bearer ')[1]! || "");
     }
   }, []);
 
 
-  const WEBSOCKET_URL = token ? `${process.env.NEXT_PUBLIC_WS_URL}?token=${token}` : null;
+  const WEBSOCKET_URL = `${process.env.NEXT_PUBLIC_WS_URL}?token=${token}`;
   const { isConnected, message } = useWebSocket(WEBSOCKET_URL || "", roomId);
-
   const drawActionsRef = useRef<DrawActions | null>(null)
 
   useEffect(() => {
@@ -32,10 +31,6 @@ const Canvas = () => {
 
     if (canvasRef.current && isConnected) {
       const canvas = canvasRef.current;
-      sendWSMessage({
-        type: 'join_room',
-        roomId: roomId,
-      })
       initDraw(canvas, roomId)
         .then((actions) => {
           if (!canvasRef.current) {
@@ -55,6 +50,15 @@ const Canvas = () => {
     }
   }, [isConnected, roomId]);
 
+  useEffect(() => {
+    if(isConnected) {
+       sendWSMessage({
+        type: 'join_room',
+        roomId: roomId,
+      })
+    }
+  }, [isConnected, roomId])
+  
   useEffect(() => {
     if (message && canvasRef.current && drawActionsRef.current) {
       const ctx = canvasRef.current.getContext("2d");
@@ -114,8 +118,6 @@ const Canvas = () => {
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, []);
-
-  if (!token) return <div className="h-screen text-white p-4">Authenticating...</div>;
 
   return (
     <>

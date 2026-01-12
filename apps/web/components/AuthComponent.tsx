@@ -5,12 +5,16 @@ import { Button } from '@repo/ui/button'
 import axios from 'axios'
 import { UserSchema } from '@repo/schema'
 import { useRouter } from 'next/navigation'
+import { useSearchParams } from 'next/navigation'
+
 export const AuthPage = ({ isSignin }: { isSignin: boolean }) => {
   const [username, setUsername] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const rediretRoomId = searchParams.get("redirect");
 
   const handleClick = async () => {
     setError(null);
@@ -30,7 +34,11 @@ export const AuthPage = ({ isSignin }: { isSignin: boolean }) => {
     try {
       const res = await axios.post(`${process.env.NEXT_PUBLIC_HTTP_URL}/api/v1/users/${isSignin ? 'signin' : 'signup'}`, result.data)
       localStorage.setItem('token',`Bearer ${res.data.token}`);
-      router.push(`canvas/${Math.floor(Math.random() * 100)}`)
+      if(rediretRoomId) {
+        router.push(`/canvas/${rediretRoomId}`);
+      } else {
+        router.push(`/canvas/${Math.floor(Math.random() * 1000)}`);
+      }
     } catch (error: any) {
       setError(error.message as string || "An error occurred.");
     }
