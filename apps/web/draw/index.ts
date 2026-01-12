@@ -61,8 +61,7 @@ export const initDraw = async (
   // stored in world space
   let startX = 0;
   let startY = 0;
-
-
+  canvas.style.cursor = 'default';
   // resets the camera
   const render = () => {
     const { offsetX, offsetY, scale } = useCameraStore.getState();
@@ -79,6 +78,7 @@ export const initDraw = async (
     if (tailPoints.length > 0) {
       drawTail(ctx, tailPoints, offsetX, offsetY, scale)
     }
+    canvas.style.cursor = 'default'
   }
 
   const unsubscribeShapes = useShapeStore.subscribe(render);
@@ -144,7 +144,9 @@ export const initDraw = async (
       currentPencilPoints = [{ x: startX, y: startY }]
       ctx.lineWidth = 2 / scale;
     }
-
+    if (shapeType === 'hand') {
+      canvas.style.cursor = 'grab';
+    }
     if (existingTextId) {
       const store = useShapeStore.getState();
       const idx = store.shapes.findIndex((s) => s.id === existingTextId);
@@ -199,6 +201,9 @@ export const initDraw = async (
     if (shapeType === 'hand' || shapeType === 'eraser') {
       tailPoints = [];
       render();
+      if (shapeType === 'eraser') {
+        canvas.style.cursor = 'grab'
+      }
       return;
     }
     // calc current mouse position in world space
@@ -206,7 +211,6 @@ export const initDraw = async (
     const currentY = (e.clientY - offsetY) / scale;
     const width = currentX - startX;
     const height = currentY - startY;
-
 
     render();
     let newShape: DraftShape | null = null;
@@ -307,6 +311,7 @@ export const initDraw = async (
     if (shapeType === 'hand') {
       setOffset(e.clientX - startX * scale, e.clientY - startY * scale);
       render();
+      canvas.style.cursor = 'grabbing';
       return;
     }
 
@@ -433,11 +438,7 @@ export const initDraw = async (
 const getExistingShapes = async (roomId: string) => {
   console.log("Getting existing shapes")
   try {
-    const res = await axios.get(`http://localhost:8080/api/v1/chat/${roomId}`, {
-      headers: {
-        Authorization: localStorage.getItem('token')
-      }
-    });
+    const res = await axios.get(`${process.env.NEXT_PUBLIC_HTTP_URL}/api/v1/chat/${roomId}`);
     const messages = res.data.messages;
     console.log("Messages is :", messages);
 

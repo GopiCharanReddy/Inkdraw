@@ -4,6 +4,5 @@ import { PrismaClient } from "../generated/prisma/index.js";
 declare const prisma: PrismaClient<{
     adapter: PrismaPg;
 }, never, import("../generated/prisma/runtime/client.js").DefaultArgs>;
-export { prisma };
 export default prisma;
 //# sourceMappingURL=client.d.ts.map
