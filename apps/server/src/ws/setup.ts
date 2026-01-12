@@ -65,21 +65,17 @@ export const setupWs = (server: Server) => {
           if (!currentUser.rooms.includes(parsedData.roomId)) {
             currentUser.rooms.push(parsedData.roomId)
           }
-          if(userAuthentication){
-            await prismaClient.room.upsert({
-              where: { id: roomId },
-              update: {
-                id: roomId,
-                slug: roomId.toString(),
-                adminId: userAuthentication.userId
-              },
-              create: {
-                id: roomId,
-                slug: roomId.toString(),
-                adminId: userAuthentication?.userId
-              }
-            });
-          }
+          await prismaClient.room.upsert({
+            where: { id: roomId },
+            update: {
+              ...(userAuthentication && { adminId: userAuthentication.userId })
+            },
+            create: {
+              id: roomId,
+              slug: roomId.toString(),
+              adminId: userAuthentication?.userId || null
+            }
+          });
         }
 
         if (parsedData.type === 'leave_room') {
@@ -91,7 +87,7 @@ export const setupWs = (server: Server) => {
           const shapeData = JSON.parse(message);
           const shapeId = shapeData.id;
           const isDeleted = shapeData.isDeleted || false;
-          
+
           users.forEach(user => {
             if (user.rooms.includes(roomId)) {
               user.ws.send(JSON.stringify({

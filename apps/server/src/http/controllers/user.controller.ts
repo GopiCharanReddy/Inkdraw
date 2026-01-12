@@ -68,7 +68,7 @@ export const signin = async (req: Request, res: Response) => {
   const parsedData = UserSchema.safeParse(req.body);
   try {
     if (!parsedData.success) {
-      res.status(400).json({
+      return res.status(400).json({
         message: "Enter valid credentials."
       })
     }
@@ -79,7 +79,7 @@ export const signin = async (req: Request, res: Response) => {
     });
   
     if (!existingUser) {
-      res.status(400).json({
+      return res.status(400).json({
         message: "User does not exist."
       })
     }
@@ -89,7 +89,7 @@ export const signin = async (req: Request, res: Response) => {
     })
     return res.status(201).json({
       token,
-      message: "User signed up successfully."
+      message: "User signed in successfully."
     })
   } catch (error) {
     console.log("Signin error: ",error);
