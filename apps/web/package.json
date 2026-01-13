@@ -15,10 +15,12 @@
     "./tailwind.config": "./tailwind.config.ts"
   },
   "dependencies": {
+    "@repo/auth": "workspace:*",
     "@repo/ui": "workspace:*",
     "axios": "^1.13.2",
     "dotenv": "^17.2.3",
     "next": "^16.0.1",
+    "pg": "8.16.3",
     "react": "^19.2.0",
     "react-dom": "^19.2.0",
     "zustand": "^5.0.9"

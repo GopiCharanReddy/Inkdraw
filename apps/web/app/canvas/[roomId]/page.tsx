@@ -7,20 +7,28 @@ import { sendWSMessage } from "../../../components/socketManager";
 import { DrawActions, Shape } from "@repo/schema";
 import ToolBar from "../../../components/Toolbar/ToolBar";
 import { useShapeStore } from "../../../components/store/store";
+import { authClient } from '@repo/auth/client'
 
 const Canvas = () => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [token, setToken] = useState<string>("");
+  const [isAuthChecked, setIsAuthChecked] = useState(false);
   const params = useParams();
   const roomId = params.roomId as string;
 
   useEffect(() => {
-    const storedToken = localStorage.getItem('token');
-    if (storedToken) {
-      setToken(storedToken.split('Bearer ')[1]! || "");
-    }
-  }, []);
+    const fetchSession = async () => {
+      const { data } = await authClient.getSession();
 
+      if (data?.session.token) {
+        setToken(data.session.token)
+      } else {
+        setToken("")
+      }
+      setIsAuthChecked(true);
+    }
+    fetchSession();
+  }, []);
 
   const WEBSOCKET_URL = `${process.env.NEXT_PUBLIC_WS_URL}?token=${token}`;
   const { isConnected, message } = useWebSocket(WEBSOCKET_URL || "", roomId);
@@ -51,14 +59,14 @@ const Canvas = () => {
   }, [isConnected, roomId]);
 
   useEffect(() => {
-    if(isConnected) {
-       sendWSMessage({
+    if (isConnected) {
+      sendWSMessage({
         type: 'join_room',
         roomId: roomId,
       })
     }
   }, [isConnected, roomId])
-  
+
   useEffect(() => {
     if (message && canvasRef.current && drawActionsRef.current) {
       const ctx = canvasRef.current.getContext("2d");
@@ -122,7 +130,7 @@ const Canvas = () => {
   return (
     <>
       <div className="h-screen w-screen overflow-hidden bg-neutral-50">
-        {isConnected ?
+        {isConnected && isAuthChecked ?
           <div>
             <canvas className="block w-full h-full" ref={canvasRef}></canvas>
             <ToolBar />
