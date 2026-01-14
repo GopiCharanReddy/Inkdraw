@@ -18,7 +18,7 @@ export const chatWorker = new Worker(
       create: {
         content: message,
         userId: userId || null,
-        roomId: Number(roomId),
+        roomId: roomId,
         shapeId,
         isDeleted,
       }

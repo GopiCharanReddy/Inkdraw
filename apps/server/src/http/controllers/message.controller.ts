@@ -4,7 +4,7 @@ import { Request, Response } from "express";
 
 export const loadMessages = async (req: Request, res: Response) => {
   const parsedData = FetchMessages.safeParse(req.params);
-  if(!parsedData.success) {
+  if (!parsedData.success) {
     return res.status(400).json({
       message: "Enter valid room id."
     })
@@ -13,13 +13,13 @@ export const loadMessages = async (req: Request, res: Response) => {
   try {
     const messages = await prismaClient.message.findMany({
       where: {
-        roomId: Number(parsedData.data.roomId),
+        roomId: parsedData.data.roomId,
         isDeleted: false
       }, orderBy: {
         id: 'desc'
       },
       take: 50
-    }, )
+    },)
     return res.status(201).json({
       messages,
     })

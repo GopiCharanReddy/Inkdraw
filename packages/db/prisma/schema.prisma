@@ -32,7 +32,7 @@ model User {
 }
 
 model Room {
-  id        Int       @id @default(autoincrement())
+  id        String       @id @default(uuid())
   slug      String    @unique
   adminId   String?
   admin     User?     @relation(fields: [adminId], references: [id])
@@ -45,7 +45,7 @@ model Message {
   id        Int     @id @default(autoincrement())
   content   String
   shapeId   String  @unique
-  roomId    Int
+  roomId    String
   isDeleted Boolean @default(false)
   room      Room    @relation(fields: [roomId], references: [id])
   userId    String?

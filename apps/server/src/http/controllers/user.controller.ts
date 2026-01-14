@@ -1,7 +1,4 @@
 import { NextFunction, Request, Response } from "express";
-import jwt from 'jsonwebtoken';
-import { UserSchema } from "@repo/schema";
-import bcrypt from "bcryptjs";
 import prismaClient from '@repo/db';
 
 

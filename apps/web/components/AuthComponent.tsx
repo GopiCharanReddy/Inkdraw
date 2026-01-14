@@ -13,8 +13,8 @@ export const AuthPage = ({ isSignin }: { isSignin: boolean }) => {
   const [error, setError] = useState<string | null>(null);
   const router = useRouter();
   const searchParams = useSearchParams();
-  const rediretRoomId = searchParams.get("redirect");
-
+  const redirectRoomId = searchParams.get("redirect");
+  const destinationUrl = redirectRoomId ? `/canvas/${redirectRoomId}` : `/canvas/${crypto.randomUUID()}`;
   const handleAuth = async () => {
     setError(null);
     if (isSignin) {
@@ -22,7 +22,13 @@ export const AuthPage = ({ isSignin }: { isSignin: boolean }) => {
         email,
         password
       }, {
-        onSuccess: () => router.push('/canvas/new'),
+        onSuccess: () => {
+          if (redirectRoomId) {
+            router.push(destinationUrl)
+          } else {
+            router.push(destinationUrl)
+          }
+        },
         onError: (ctx) => alert(ctx.error.message)
       });
     } else {
@@ -31,26 +37,21 @@ export const AuthPage = ({ isSignin }: { isSignin: boolean }) => {
         password,
         name,
       }, {
-        onSuccess: () => router.push('/canvas/new'),
+        onSuccess: () => {
+          if (redirectRoomId) {
+            router.push(destinationUrl)
+          } else {
+            router.push(destinationUrl)
+          }
+        },
         onError: (ctx) => alert(ctx.error.message)
       })
-      // try {
-      //   const res = await axios.post(`${process.env.NEXT_PUBLIC_HTTP_URL}/api/v1/users/${isSignin ? 'signin' : 'signup'}`, result.data)
-      //   localStorage.setItem('token', `Bearer ${res.data.token}`);
-      //   if (rediretRoomId) {
-      //     router.push(`/canvas/${rediretRoomId}`);
-      //   } else {
-      //     router.push(`/canvas/${Math.floor(Math.random() * 1000)}`);
-      //   } 
-      // } catch (error: any) {
-      //   setError(error.message as string || "An error occurred.");
-      // }
     }
   }
   const handleGoogle = async () => {
     await authClient.signIn.social({
       provider: "google",
-      callbackURL: "/canvas/new"
+      callbackURL: destinationUrl,
     })
   }
   return (

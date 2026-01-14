@@ -1,5 +1,4 @@
 import { WebSocket, WebSocketServer } from "ws";
-import jwt, { JwtPayload } from 'jsonwebtoken';
 import { Server } from 'http';
 import { chatQueue } from "./queues/chat.queue";
 import prismaClient from "@repo/db";
@@ -8,30 +7,32 @@ type User = {
   ws: WebSocket,
   userId: string,
   rooms: string[],
-  username?: string
+  username?: string | null
 }
 
 const users: User[] = [];
 
-const checkUser = (token: string): Pick<User, 'userId' | 'username'> | null => {
+const checkUser = async (token: string) => {
+  if (!token) return null;
   try {
-    const decoded = jwt.verify(token, process.env.JWT_SECRET!) as JwtPayload & { id: string; username: string };
+    const session = await prismaClient.session.findFirst({
+      where: {
+        token: token
+      },
+      include: {
+        user: true
+      }
+    });
 
-    if (typeof decoded === "string") {
-      return null;
-    }
-
-    if (!decoded || typeof decoded !== "object") {
-      console.log("WS rejected, invalid token.")
-      return null;
-    }
+    if (!session) return null;
+    if (session.expiresAt < new Date()) return null;
 
     return {
-      userId: decoded.id,
-      username: decoded.username
+      userId: session.userId,
+      username: session.user.name || session.user.username
     }
   } catch (error) {
-    console.log("User not authenticated.", error)
+    console.log("Error verifying session.", error)
     return null;
   }
 }
@@ -39,7 +40,7 @@ const checkUser = (token: string): Pick<User, 'userId' | 'username'> | null => {
 export const setupWs = (server: Server) => {
   const socket = new WebSocketServer({ server })
 
-  socket.on("connection", function connection(ws, req) {
+  socket.on("connection", async function connection(ws, req) {
     const url = req.url;
     if (!url) {
       return
@@ -47,10 +48,11 @@ export const setupWs = (server: Server) => {
     try {
       const queryParams = new URLSearchParams(url.split('?')[1])
       const token = queryParams.get('token') || "";
-      const userAuthentication = checkUser(token);
+      const userAuthentication = await checkUser(token);
 
       const currentUser: User = {
         userId: userAuthentication?.userId || `GUEST_${Math.random().toString(36).substring(2, 9)}`,
+        username: userAuthentication?.username,
         ws,
         rooms: []
       }
@@ -61,7 +63,7 @@ export const setupWs = (server: Server) => {
         const parsedData = JSON.parse(data as unknown as string)
 
         if (parsedData.type === 'join_room') {
-          const roomId = Number(parsedData.roomId)
+          const roomId = parsedData.roomId
           if (!currentUser.rooms.includes(parsedData.roomId)) {
             currentUser.rooms.push(parsedData.roomId)
           }
@@ -72,7 +74,7 @@ export const setupWs = (server: Server) => {
             },
             create: {
               id: roomId,
-              slug: roomId.toString(),
+              slug: roomId,
               adminId: userAuthentication?.userId || null
             }
           });
