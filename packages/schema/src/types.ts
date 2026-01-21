@@ -61,9 +61,11 @@ export type Shape = | {
   type: "text" | "note" | "image";
   x: number;
   y: number;
+  width?: number;
+  height?: number;
   content?: string; // For text/notes
-  fontSize?: number
-  src?: string;     // For images
+  fontSize?: number;
+  imgUrl?: string;     // For images
   isDeleted?: boolean
 }
 

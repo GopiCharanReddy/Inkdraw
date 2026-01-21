@@ -3,6 +3,9 @@ import { DraftShape, DrawActions, Shape } from '@repo/schema';
 import { sendWSMessage } from "../components/socketManager";
 import { useCameraStore, useShapeStore, useToolStore } from "../components/store/store";
 import { iconLibrary } from "../components/resources/icons";
+import { knewave } from "../app/layout";
+
+const imageCache = new Map<string, HTMLImageElement>();
 
 export const drawShape = (ctx: CanvasRenderingContext2D, shape: DraftShape) => {
   ctx.beginPath()
@@ -33,10 +36,91 @@ export const drawShape = (ctx: CanvasRenderingContext2D, shape: DraftShape) => {
     ctx.lineJoin = "round"
     ctx.stroke();
   } else if (shape.type === 'text') {
-    ctx.font = `${shape.fontSize}px sans-seriff`;
-    ctx.fillStyle = 'black'
-    ctx.textBaseline = 'top'
-    ctx.fillText(shape.content!, shape.x, shape.y);
+    ctx.font = `${shape.fontSize}px ${knewave.style.fontFamily}`;
+    ctx.textBaseline = 'middle';
+    // ctx.fillText(shape.content!, shape.x, shape.y);
+    const padding = 10;
+    const lineHeight = shape.fontSize! * 1.2; // multiply by 1.2 to match the HTMl textarea default 
+    const maxWidth = (shape.width || 0) - (padding * 2);
+
+
+    const paragraphs = (shape.content || "").split('\n');
+    let x = shape.x + padding;
+    let y = shape.y + padding + (lineHeight / 2);
+
+    paragraphs.forEach((paragraph) => {
+      const words = paragraph.split(" ");
+      let line = "";
+      for (let n = 0; n < words.length; n++) {
+        const testline = line + words[n] + ' ';
+        const metrics = ctx.measureText(testline);
+        const testWidth = metrics.width;
+        if (maxWidth > 0 && testWidth > maxWidth && n > 0) {
+          ctx.fillText(line, x, y);
+          line = words[n] + ' ';
+          y += lineHeight;
+        } else {
+          line = testline;
+        }
+      }
+      ctx.fillText(line, x, y);
+      y += lineHeight;
+    })
+  } else if (shape.type === 'image' && shape.imgUrl) {
+    let img = imageCache.get(shape.imgUrl);
+    if (!img) {
+      img = new Image();
+      img.src = shape.imgUrl;
+      imageCache.set(shape.imgUrl, img)
+      img.onload = () => {
+        if (!img) return;
+        ctx.drawImage(img, shape.x, shape.y, shape.width!, shape.height!);
+      }
+      img.onerror = () => {
+        console.error("Failed to load image: ", shape.imgUrl);
+        imageCache.delete(shape.imgUrl!);
+      }
+    }
+    if (img.complete && img.naturalWidth > 0) {
+      try {
+        ctx.drawImage(img, shape.x, shape.y, shape.width!, shape.height!);
+      } catch (error) {
+        console.error("Error drawing image: ", error)
+      }
+    }
+  } else if (shape.type === 'note') {
+    ctx.fillStyle = '#ffff88';
+    ctx.textBaseline = "top";
+    ctx.font = `16px ${knewave.style.fontFamily}`;
+    ctx.fillRect(shape.x, shape.y, shape.width!, shape.height!);
+    ctx.fillStyle = '#000';
+    ctx.shadowBlur = 15;
+    const padding = 10;
+    const lineHeight = 20;
+    const maxWidth = shape.width! - (padding * 2);
+
+    const paragraphs = (shape.content || "").split('\n');
+    let x = shape.x + padding;
+    let y = shape.y + padding;
+
+    paragraphs.forEach((paragraph) => {
+      const words = paragraph.split(" ");
+      let line = "";
+      for (let n = 0; n < words.length; n++) {
+        const testline = line + words[n] + ' ';
+        const metrics = ctx.measureText(testline);
+        const testWidth = metrics.width;
+        if (testWidth > maxWidth && n > 0) {
+          ctx.fillText(line, x, y);
+          line = words[n] + ' ';
+          y += lineHeight;
+        } else {
+          line = testline;
+        }
+      }
+      ctx.fillText(line, x, y);
+      y += lineHeight;
+    })
   }
 }
 export const initDraw = async (
@@ -54,7 +138,8 @@ export const initDraw = async (
   let tailPoints: { x: number, y: number }[] = [];
   const tailLength = 5;
   let clicked = false;
-  let existingTextId: string | null = null;
+  let isTyping = false;
+  // let existingTextId: string | null = null;  text logic
   let selectedShapeId: string | null = null;
   let dragOffset = { x: 0, y: 0 };
   let isDragging = false;
@@ -91,45 +176,46 @@ export const initDraw = async (
   window.addEventListener("resize", handleResize)
   handleResize();
 
-  const handleKeyDown = (e: KeyboardEvent) => {
-    if (!existingTextId) return;
-    //prevents default of browser going back to previous page
-    if (e.key === 'Backspace' || e.key === ' ') e.preventDefault();
+  // logic used for using backspace & enter keys for shapetype text 
+  // const handleKeyDown = (e: KeyboardEvent) => {
+  //   if (!existingTextId) return;
+  //   //prevents default of browser going back to previous page
+  //   if (e.key === 'Backspace' || e.key === ' ') e.preventDefault();
 
-    const store = useShapeStore.getState();
-    const shapes = store.shapes;
-    const shapeIndex = shapes.findIndex(s => s.id === existingTextId);
-    if (shapeIndex === -1) return;
+  //   const store = useShapeStore.getState();
+  //   const shapes = store.shapes;
+  //   const shapeIndex = shapes.findIndex(s => s.id === existingTextId);
+  //   if (shapeIndex === -1) return;
 
-    const currentShape = shapes[shapeIndex];
-    if (currentShape && currentShape.type === 'text') {
-      let newText = currentShape.content!.replace('|', '');
+  //   const currentShape = shapes[shapeIndex];
+  //   // if (currentShape && currentShape.type === 'text') {
+  //   //   let newText = currentShape.content!.replace('|', '');
 
-      if (e.key === 'Backspace') {
-        newText = newText.slice(0, -1);
-      } else if (e.key === 'Enter') {
-        existingTextId = null;
-        const finalShapes = [...store.shapes];
-        finalShapes[shapeIndex] = { ...currentShape, content: newText }
-        useShapeStore.setState({ shapes: finalShapes })
-        render();
-        return;
-      } else if (e.key.length === 1) {
-        newText += e.key;
-      }
-      const updatedShapes = [...store.shapes];
-      updatedShapes[shapeIndex] = { ...currentShape, content: newText + '|' };
-      useShapeStore.setState({
-        shapes: updatedShapes
-      })
+  //   //   if (e.key === 'Backspace') {
+  //   //     newText = newText.slice(0, -1);
+  //   //   } else if (e.key === 'Enter') {
+  //   //     existingTextId = null;
+  //   //     const finalShapes = [...store.shapes];
+  //   //     finalShapes[shapeIndex] = { ...currentShape, content: newText }
+  //   //     useShapeStore.setState({ shapes: finalShapes })
+  //   //     render();
+  //   //     return;
+  //   //   } else if (e.key.length === 1) {
+  //   //     newText += e.key;
+  //   //   }
+  //   //   const updatedShapes = [...store.shapes];
+  //   //   updatedShapes[shapeIndex] = { ...currentShape, content: newText + '|' };
+  //   //   useShapeStore.setState({
+  //   //     shapes: updatedShapes
+  //   //   })
 
-      sendWSMessage({
-        type: 'chat',
-        message: JSON.stringify(updatedShapes[shapeIndex]),
-        roomId
-      })
-    }
-  };
+  //   //   sendWSMessage({
+  //   //     type: 'chat',
+  //   //     message: JSON.stringify(updatedShapes[shapeIndex]),
+  //   //     roomId
+  //   //   })
+  //   // }
+  // };
 
   const onMouseDown = (e: MouseEvent) => {
     const { offsetX, offsetY, scale } = useCameraStore.getState();
@@ -137,6 +223,7 @@ export const initDraw = async (
     const { shapes } = useShapeStore.getState();
     const shapeType = iconLibrary.find(icon => icon.name === activeTool)?.shapeType;
     clicked = true;
+    if (isTyping) return;
     // convert screen coordinates to world coordinates
     startX = (e.clientX - offsetX) / scale;
     startY = (e.clientY - offsetY) / scale;
@@ -147,19 +234,19 @@ export const initDraw = async (
     if (shapeType === 'hand') {
       canvas.style.cursor = 'grab';
     }
-    if (existingTextId) {
-      const store = useShapeStore.getState();
-      const idx = store.shapes.findIndex((s) => s.id === existingTextId);
-      if (idx !== -1) {
-        const shape = store.shapes[idx];
-        if (shape && shape.type === 'text') {
-          shapes[idx] = { ...shape, content: shape.content?.replace('|', '') };
-          useShapeStore.setState({ shapes });
+    /*for shape type text
+      if (existingTextId) {
+        const store = useShapeStore.getState();
+        const idx = store.shapes.findIndex((s) => s.id === existingTextId);
+        if (idx !== -1) {
+          const shape = store.shapes[idx];
+          if (shape && shape.type === 'text') {
+            shapes[idx] = { ...shape, content: shape.content?.replace('|', '') };
+            useShapeStore.setState({ shapes });
+          }
         }
-      }
-      existingTextId = null;
-    }
-
+        existingTextId = null;
+      }*/
     if (shapeType === 'select') {
       const hit = [...shapes].reverse().find(s => isPointInShape(startX, startY, s));
       if (hit) {
@@ -176,17 +263,166 @@ export const initDraw = async (
     }
 
     if (shapeType === 'text') {
-      const id = crypto.randomUUID();
-      const newShape: Shape = {
-        id,
-        type: 'text',
-        x: startX,
-        y: startY,
-        content: '|',
-        fontSize: 24 / scale,
+      isTyping = true;
+      const noteX = startX;
+      const noteY = startY;
+      const fontSize = 24 * scale;
+      const input = document.createElement('textarea');
+      input.style.position = 'fixed';
+      input.style.left = `${e.clientX}px`;
+      input.style.top = `${e.clientY}px`;
+      input.style.background = 'transparent';
+      input.style.border = "none";
+      input.style.outline = "none";
+      input.style.overflow = "hidden";
+      input.style.color = "black";
+      input.style.resize = "none";
+      input.style.font = `${fontSize}px ${knewave.style.fontFamily}`;
+      input.style.lineHeight = `${fontSize * 1.2}px`;
+      input.style.margin = "0";
+      input.style.padding = "10px";
+      input.style.whiteSpace = "pre"  // force horizontal growth
+      input.style.minWidth = "50px";
+      input.style.minHeight = "1em";
+      document.body.appendChild(input);
+
+      setTimeout(() => input.focus(), 10);  // focusing an event immediately after creation may fail, hence the timeout
+
+      input.onkeydown = (e) => {
+        e.stopPropagation();
       }
-      existingTextId = id
-      useShapeStore.getState().addShape(newShape);
+
+      input.oninput = () => {
+        input.style.width = "auto";
+        input.style.height = "auto";
+
+        input.style.height = `${input.scrollHeight}px`;
+        input.style.width = `${input.scrollWidth}px`
+      }
+      input.onblur = () => {
+        const content = input.value;
+        if (content.trim()) {
+          const id = crypto.randomUUID();
+          const newShape: Shape = {
+            type: shapeType,
+            id,
+            x: noteX,
+            y: noteY,
+            width: input.scrollWidth / scale,
+            height: input.scrollHeight / scale,
+            content,
+            fontSize: 24,
+          }
+          useShapeStore.getState().addShape(newShape);
+          sendWSMessage({
+            type: 'chat',
+            message: JSON.stringify(newShape),
+            roomId
+          })
+        }
+        if (document.body.contains(input)) {
+          document.body.removeChild(input);
+        }
+        isTyping = false;
+      }
+      return;
+      // const id = crypto.randomUUID();
+      // const newShape: Shape = {
+      //   id,
+      //   type: 'text',
+      //   x: startX,
+      //   y: startY,
+      //   content: '|',
+      //   fontSize: 24 / scale,
+      // }
+      // existingTextId = id
+      // useShapeStore.getState().addShape(newShape);
+      // return;
+    }
+    if (shapeType === 'image') {
+      const input = document.createElement('input');
+      input.type = 'file';
+      input.accept = 'image/*';
+
+      input.onchange = async (e) => {
+        const file = (e.target as HTMLInputElement).files?.[0];
+        if (!file) return;
+
+        const formData = new FormData();
+        formData.append('image', file)
+
+        const res = await axios.post(`${process.env.NEXT_PUBLIC_HTTP_URL}/api/v1/upload`, formData);
+        const imgUrl = res.data.imgUrl;
+
+        const newShape: Shape = {
+          id: crypto.randomUUID(),
+          type: 'image',
+          x: startX,
+          y: startY,
+          imgUrl,
+          width: 300,
+          height: 300,
+        }
+        useShapeStore.getState().addShape(newShape);
+        sendWSMessage({
+          type: 'chat',
+          message: JSON.stringify(newShape),
+          roomId
+        })
+      }
+      input.click();
+      return;
+    }
+
+    if (shapeType === 'note') {
+      isTyping = true;
+      const noteX = startX;
+      const noteY = startY;
+      const input = document.createElement('textarea');
+      input.style.position = 'fixed';
+      input.style.left = `${e.clientX}px`;
+      input.style.top = `${e.clientY}px`;
+      input.style.background = "#ffff88";
+      input.style.border = "2px solid black";
+      input.style.borderRadius = "5px";
+      input.style.boxShadow = "0 4px 6px rgba(0,0,0,0.3)";
+      input.style.width = "200px";
+      input.style.minHeight = "200px";
+      input.style.zIndex = "1000";
+      document.body.appendChild(input);
+
+      setTimeout(() => input.focus(), 10);
+
+      input.oninput = () => {
+        input.style.height = "auto";
+        input.style.height = `${input.scrollHeight}`;
+      }
+
+      input.onblur = () => {
+        const content = input.value;
+        if (content.trim()) {
+          const id = crypto.randomUUID();
+          const newShape: Shape = {
+            type: shapeType,
+            id,
+            x: noteX,
+            y: noteY,
+            width: 200,
+            height: input.scrollHeight / scale,
+            content,
+          }
+          useShapeStore.getState().addShape(newShape);
+          sendWSMessage({
+            type: 'chat',
+            message: JSON.stringify(newShape),
+            roomId
+          })
+        }
+        if (document.body.contains(input)) {
+          document.body.removeChild(input);
+        }
+        isTyping = false;
+      }
       return;
     }
   }
@@ -405,13 +641,13 @@ export const initDraw = async (
   canvas.addEventListener('mouseup', onMouseUp);
   canvas.addEventListener('mousemove', onMouseMove);
   canvas.addEventListener('wheel', onWheel, { passive: false })
-  window.addEventListener('keydown', handleKeyDown);
+  // window.addEventListener('keydown', handleKeyDown);
 
   return {
     cleanup: () => {
       unsubscribeShapes();
       window.removeEventListener("resize", handleResize);
-      window.removeEventListener('keydown', handleKeyDown);
+      // window.removeEventListener('keydown', handleKeyDown);
       canvas.removeEventListener("mousedown", onMouseDown);
       canvas.removeEventListener("mouseup", onMouseUp);
       canvas.removeEventListener("mousemove", onMouseMove);
@@ -456,11 +692,13 @@ const getExistingShapes = async (roomId: string) => {
 const isPointInShape = (x: number, y: number, shape: Shape): boolean => {
   const threshold = 5;
   //  "rectangle" | "diamond" | "rhombus" | "triangle" | "hexagon" | "star" | "heart" | "line" | "laser";
-  if (shape.type === 'rectangle') {
-    const left = Math.min(shape.x, shape.x + shape.width)
-    const right = Math.max(shape.x, shape.x + shape.width)
-    const top = Math.min(shape.y, shape.y + shape.height)
-    const bottom = Math.max(shape.y, shape.y + shape.height)
+  if (shape.type === 'rectangle' || shape.type === 'image' || shape.type === 'note') {
+    const width = shape.width || 0;
+    const height = shape.height || 0;
+    const left = Math.min(shape.x, shape.x + width)
+    const right = Math.max(shape.x, shape.x + width)
+    const top = Math.min(shape.y, shape.y + height)
+    const bottom = Math.max(shape.y, shape.y + height)
     return x >= left && x <= right && y >= top && y <= bottom;
   }
   if (shape.type === 'rhombus' || shape.type === 'diamond') {
@@ -486,10 +724,9 @@ const isPointInShape = (x: number, y: number, shape: Shape): boolean => {
     return distToSegment({ x, y }, { x: shape.x, y: shape.y }, { x: shape.width, y: shape.height }) < threshold
   }
   if (shape.type === 'text') {
-    const charWidth = shape.fontSize! * 0.6;
-    const width = (shape.content || "").replace('|', '').length * charWidth;
-    const height = shape.fontSize;
-    return x >= shape.x && x <= shape.x + width && y >= shape.y && y <= shape.y + height!
+    if (shape.width && shape.height) {
+      return x >= shape.x && x <= shape.x + shape.width && y >= shape.y && y <= shape.y + shape.height
+    }
   }
   return false;
 }
