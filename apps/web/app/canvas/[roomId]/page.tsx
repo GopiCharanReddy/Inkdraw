@@ -8,6 +8,7 @@ import { DrawActions, Shape } from "@repo/schema";
 import ToolBar from "../../../components/Toolbar/ToolBar";
 import { useShapeStore } from "../../../components/store/store";
 import { authClient } from '@repo/auth/client'
+import { knewave } from "../../layout";
 
 const Canvas = () => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -132,7 +133,7 @@ const Canvas = () => {
       <div className="h-screen w-screen overflow-hidden bg-neutral-50">
         {isConnected && isAuthChecked ?
           <div>
-            <canvas className="block w-full h-full" ref={canvasRef}></canvas>
+            <canvas className={`block w-full h-full ${knewave.className}`} ref={canvasRef}></canvas>
             <ToolBar />
           </div>
           :

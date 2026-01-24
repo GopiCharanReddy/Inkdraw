@@ -1,12 +1,21 @@
 import type { Metadata } from "next";
-import { Knewave } from "next/font/google";
+import localFont from "next/font/local";
+import { Knewave } from 'next/font/google';
 import "./globals.css";
 
 export const knewave = Knewave({
   weight: '400',
-  subsets: ['latin'],
   display: 'swap',
 })
+
+const geistSans = localFont({
+  src: "./fonts/GeistVF.woff",
+  variable: "--font-geist-sans",
+});
+const geistMono = localFont({
+  src: "./fonts/GeistMonoVF.woff",
+  variable: "--font-geist-mono",
+});
 
 const metadata: Metadata = {
   title: "Create Next App",
@@ -20,7 +29,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      <body className={knewave.className}>
+      <body className={`${geistSans.variable} ${geistMono.variable}`}>
         {children}
       </body>
     </html>
