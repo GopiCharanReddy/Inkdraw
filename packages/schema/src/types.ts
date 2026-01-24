@@ -32,7 +32,7 @@ export const FetchMessages = z.object({
 
 export type Shape = | {
   id: string,
-  type: "rectangle" | "diamond" | "rhombus" | "triangle" | "hexagon" | "star" | "heart" | "line" | "laser" | "select";
+  type: "rectangle" | "diamond" | "rhombus" | "triangle" | "heart" | "line" | "laser" | "select" | "arrow" | "arrowLeft" | "arrowRight" | "arrowUp" | "arrowDown";
   x: number;
   y: number;
   width: number;
@@ -41,11 +41,13 @@ export type Shape = | {
 } |
 {
   id: string,
-  type: 'circle';
-  centerX: number;
-  centerY: number;
-  radius: number;
-  isDeleted?: boolean
+  type: 'circle' | 'hexagon' | 'star';
+  centerX?: number;
+  centerY?: number;
+  radius?: number;
+  innerRadius?: number;
+  outerRadius?: number;
+  isDeleted?: boolean;
 } |
 {
   id: string,

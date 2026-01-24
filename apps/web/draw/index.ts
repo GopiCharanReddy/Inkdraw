@@ -18,8 +18,8 @@ export const drawShape = (ctx: CanvasRenderingContext2D, shape: DraftShape) => {
     ctx.lineTo(shape.x, shape.y + shape.height / 2);
     ctx.closePath();
     ctx.stroke();
-  } else if (shape.type === "circle") {
-    ctx.arc(shape.centerX, shape.centerY, shape.radius, 0, 2 * Math.PI);
+  } else if (shape.type === 'circle') {
+    ctx.arc(shape.centerX!, shape.centerY!, shape.radius!, 0, 2 * Math.PI);
     ctx.stroke();
   } else if (shape.type === 'line') {
     ctx.moveTo(shape.x, shape.y)
@@ -121,6 +121,146 @@ export const drawShape = (ctx: CanvasRenderingContext2D, shape: DraftShape) => {
       ctx.fillText(line, x, y);
       y += lineHeight;
     })
+  } else if (shape.type === 'arrow') {
+    let headlen = 10;
+    let dx = shape.width - shape.x;
+    let dy = shape.height - shape.y;
+    let angle = Math.atan2(dy, dx);
+    ctx.beginPath();
+    ctx.moveTo(shape.x, shape.y);
+    ctx.lineTo(shape.width, shape.height);
+    ctx.lineTo(shape.width - headlen * Math.cos(angle - Math.PI / 6), shape.height - headlen * Math.sin(angle - Math.PI / 6));
+    ctx.moveTo(shape.width, shape.height);
+    ctx.lineTo(shape.width - headlen * Math.cos(angle + Math.PI / 6), shape.height - headlen * Math.sin(angle + Math.PI / 6));
+    ctx.stroke();
+  } else if (shape.type === 'arrowLeft' || shape.type === 'arrowRight' || shape.type === 'arrowUp' || shape.type === 'arrowDown') {
+    let x = shape.x;
+    let y = shape.y;
+    let w = shape.width;
+    let h = shape.height;
+    if (w < 0) { x += w; w = Math.abs(w); }
+    if (h < 0) { y += h; h = Math.abs(h); }
+    const headLength = Math.min(w * 0.5, 80);
+    const tailHeight = h * 0.5;
+    // center the tail vertically
+    const tailYOffset = (h - tailHeight) / 2;
+    if (shape.type === 'arrowRight') {
+      ctx.moveTo(x + w, y + h / 2);
+      ctx.lineTo(x + w - headLength, y);
+      ctx.lineTo(x + w - headLength, y + tailYOffset);
+      ctx.lineTo(x, y + tailYOffset);
+      ctx.lineTo(x, y + h - tailYOffset);
+      ctx.lineTo(x + w - headLength, y + h - tailYOffset);
+      ctx.lineTo(x + w - headLength, y + h);
+    } else if (shape.type === 'arrowLeft') {
+      // Tip of the arrow (Far Left Center)
+      ctx.moveTo(x, y + h / 2);
+      // Top Wing
+      ctx.lineTo(x + headLength, y);
+      // Top Inner Corner (Junction)
+      ctx.lineTo(x + headLength, y + tailYOffset);
+      // Top Back Corner (End of tail)
+      ctx.lineTo(x + w, y + tailYOffset);
+      // Bottom Back Corner
+      ctx.lineTo(x + w, y + h - tailYOffset);
+      // Bottom Inner Corner (Junction)
+      ctx.lineTo(x + headLength, y + h - tailYOffset);
+      // Bottom Wing
+      ctx.lineTo(x + headLength, y + h);
+    } else if (shape.type === 'arrowUp') {
+      const headHeight = Math.min(h * 0.5, w);
+      // Tail takes up 50% of WIDTH
+      const tailWidth = w * 0.5;
+      const tailXOffset = (w - tailWidth) / 2;
+      ctx.moveTo(x + w / 2, y);
+      ctx.lineTo(x, y + headHeight);
+      // Left Inner Corner
+      ctx.lineTo(x + tailXOffset, y + headHeight);
+      // Left Bottom Corner
+      ctx.lineTo(x + tailXOffset, y + h);
+      // Right Bottom Corner
+      ctx.lineTo(x + w - tailXOffset, y + h);
+      // Right Inner Corner
+      ctx.lineTo(x + w - tailXOffset, y + headHeight);
+      // Right Wing
+      ctx.lineTo(x + w, y + headHeight);
+    } else if (shape.type === 'arrowDown') {
+      const headHeight = Math.min(h * 0.5, w);
+      const tailWidth = w * 0.5;
+      const tailXOffset = (w - tailWidth) / 2;
+      // Tip (Bottom Center)
+      ctx.moveTo(x + w / 2, y + h);
+      // Left Wing
+      ctx.lineTo(x, y + h - headHeight);
+      // Left Inner Corner
+      ctx.lineTo(x + tailXOffset, y + h - headHeight);
+      // Left Top Corner
+      ctx.lineTo(x + tailXOffset, y);
+      // Right Top Corner
+      ctx.lineTo(x + w - tailXOffset, y);
+      // Right Inner Corner
+      ctx.lineTo(x + w - tailXOffset, y + h - headHeight);
+      // Right Wing
+      ctx.lineTo(x + w, y + h - headHeight);
+    }
+    ctx.closePath();
+    ctx.strokeStyle = "black";
+    ctx.lineWidth = 2;
+    ctx.stroke();
+  } else if (shape.type === 'triangle') {
+    ctx.moveTo(shape.x + shape.width / 2, shape.y);
+    ctx.lineTo(shape.x + shape.width, shape.y + shape.height);
+    ctx.lineTo(shape.x, shape.y + shape.height);
+    ctx.closePath();
+    ctx.stroke();
+  } else if (shape.type === 'hexagon') {
+    const a = 2 * Math.PI / 6;
+    const r = shape.radius!;
+
+    for (let i = 0; i < 6; i++) {
+      ctx.lineTo(shape.centerX! + r * Math.cos(a * i), shape.centerY! + r * Math.sin(a * i));
+    }
+    ctx.closePath();
+    ctx.stroke();
+  } else if (shape.type === 'rhombus') {
+    ctx.moveTo(shape.x, shape.y);
+    ctx.lineTo(shape.x + shape.width, shape.y);
+    ctx.lineTo(shape.x + shape.width + shape.width / 2, shape.y + shape.height);
+    ctx.lineTo(shape.x + shape.width / 2, shape.y + shape.height);
+    ctx.closePath();
+    ctx.stroke();
+    // ctx.strokeRect(shape.x, shape.y, shape.width, shape.height);
+  } else if (shape.type === 'star') {
+    let rot = Math.PI / 2 * 3;
+    let x = shape.centerX!;
+    let y = shape.centerY!;
+    const step = Math.PI / 5;
+
+    ctx.beginPath();
+    ctx.moveTo(shape.centerX!, shape.centerY! - shape.outerRadius!);
+    for (let i = 0; i < 5; i++) {
+      x = shape.centerX! + Math.cos(rot) * shape.outerRadius!;
+      y = shape.centerY! + Math.sin(rot) * shape.outerRadius!;
+      ctx.lineTo(x, y);
+      rot += step;
+
+      x = shape.centerX! + Math.cos(rot) * shape.innerRadius!;
+      y = shape.centerY! + Math.sin(rot) * shape.innerRadius!;
+      ctx.lineTo(x, y);
+      rot += step;
+    }
+    ctx.lineTo(shape.centerX!, shape.centerY! - shape.outerRadius!);
+    ctx.closePath();
+    ctx.stroke();
+  } else if (shape.type === 'heart') {
+    let topCurveHeight = shape.height * 0.3;
+    ctx.moveTo(shape.x, shape.y + topCurveHeight);
+    ctx.bezierCurveTo(shape.x, shape.y, shape.x - shape.width / 2, shape.y, shape.x - shape.width / 2, shape.y + topCurveHeight);
+    ctx.bezierCurveTo(shape.x - shape.width / 2, shape.y + (shape.height + topCurveHeight) / 2, shape.x, shape.y + (shape.height + topCurveHeight) / 2, shape.x, shape.y + shape.height);
+    ctx.bezierCurveTo(shape.x, shape.y + (shape.height + topCurveHeight) / 2, shape.x + shape.width / 2, shape.y + (shape.height + topCurveHeight) / 2, shape.x + shape.width / 2, shape.y + topCurveHeight);
+    ctx.bezierCurveTo(shape.x + shape.width / 2, shape.y, shape.x, shape.y, shape.x, shape.y + topCurveHeight);
+    ctx.closePath();
+    ctx.stroke();
   }
 }
 export const initDraw = async (
@@ -254,8 +394,8 @@ export const initDraw = async (
         isDragging = true;
         if ('x' in hit && 'y' in hit) {
           dragOffset = { x: startX - hit.x, y: startY - hit.y }
-        } else if (hit.type === 'circle') {
-          dragOffset = { x: startX - hit.centerX, y: startY - hit.centerY }
+        } else if (hit.type === 'circle' || hit.type === 'hexagon' || hit.type === 'star') {
+          dragOffset = { x: startX - hit.centerX!, y: startY - hit.centerY! }
         }
       } else {
         selectedShapeId = null;
@@ -303,12 +443,14 @@ export const initDraw = async (
         const content = input.value;
         if (content.trim()) {
           const id = crypto.randomUUID();
+          // small buffer to prevent sub-pixel rendering difference from triggering an immediate line wrap.
+          const safeWidth = (input.scrollWidth / scale) + 20;
           const newShape: Shape = {
             type: shapeType,
             id,
             x: noteX,
             y: noteY,
-            width: input.scrollWidth / scale,
+            width: safeWidth,
             height: input.scrollHeight / scale,
             content,
             fontSize: 24,
@@ -389,6 +531,7 @@ export const initDraw = async (
       input.style.width = "200px";
       input.style.minHeight = "200px";
       input.style.zIndex = "1000";
+      input.style.fontFamily = `${knewave.style.fontFamily}`;
       document.body.appendChild(input);
 
       setTimeout(() => input.focus(), 10);
@@ -434,12 +577,15 @@ export const initDraw = async (
     const selectedIcon = iconLibrary.find(icon => icon.name === activeTool);
     const shapeType = selectedIcon?.shapeType
 
-    if (shapeType === 'hand' || shapeType === 'eraser') {
+    if (shapeType === 'hand') {
+      canvas.style.cursor = 'grab';
+      render();
+      return;
+    }
+
+    if (shapeType === 'eraser') {
       tailPoints = [];
       render();
-      if (shapeType === 'eraser') {
-        canvas.style.cursor = 'grab'
-      }
       return;
     }
     // calc current mouse position in world space
@@ -471,7 +617,7 @@ export const initDraw = async (
         centerY: startY,
         radius
       }
-    } else if (shapeType === 'rectangle' || shapeType === 'diamond' || shapeType === 'rhombus') {
+    } else if (shapeType === 'rectangle' || shapeType === 'diamond' || shapeType === 'rhombus' || shapeType === 'triangle' || shapeType === 'heart' || shapeType === 'arrowLeft' || shapeType === 'arrowRight' || shapeType === 'arrowUp' || shapeType === 'arrowDown') {
       newShape = {
         type: shapeType,
         x: startX,
@@ -487,12 +633,38 @@ export const initDraw = async (
         width: currentX,
         height: currentY
       }
+    } else if (shapeType === 'arrow') {
+      newShape = {
+        type: shapeType,
+        x: startX,
+        y: startY,
+        width: currentX,
+        height: currentY
+      }
     } else if (shapeType === 'pencil') {
       newShape = {
         type: 'pencil',
         points: [...currentPencilPoints],
       }
       currentPencilPoints = [];
+    } else if (shapeType === 'hexagon') {
+      const radius = Math.hypot(width, height)
+      newShape = {
+        type: shapeType,
+        radius,
+        centerX: startX,
+        centerY: startY
+      }
+    } else if (shapeType === 'star') {
+      const outerRadius = Math.hypot(width, height);
+      const innerRadius = outerRadius / 2;
+      newShape = {
+        type: shapeType,
+        centerX: startX,
+        centerY: startY,
+        innerRadius,
+        outerRadius
+      }
     }
     if (newShape) {
       const shapeWithId = {
@@ -536,7 +708,7 @@ export const initDraw = async (
         if (target) {
           if ('x' in target && 'y' in target) {
             shapes[idx] = { ...target, x: currentX - dragOffset.x, y: currentY - dragOffset.y };
-          } else if (target.type === 'circle') {
+          } else if (target.type === 'circle' || target.type === 'hexagon' || target.type === 'star') {
             shapes[idx] = { ...target, centerX: currentX - dragOffset.x, centerY: currentY - dragOffset.y }
           }
           useShapeStore.setState({ shapes })
@@ -589,7 +761,7 @@ export const initDraw = async (
         centerY: startY,
         radius,
       })
-    } else if (shapeType === 'diamond' || shapeType === 'rectangle' || shapeType === 'rhombus') {
+    } else if (shapeType === 'diamond' || shapeType === 'rectangle' || shapeType === 'rhombus' || shapeType === 'triangle' || shapeType === 'heart' || shapeType === 'arrowLeft' || shapeType === 'arrowRight' || shapeType === 'arrowUp' || shapeType === 'arrowDown') {
       drawShape(ctx, {
         type: shapeType,
         x: startX,
@@ -610,6 +782,32 @@ export const initDraw = async (
       drawShape(ctx, {
         type: 'pencil',
         points: currentPencilPoints
+      })
+    } else if (shapeType === 'arrow') {
+      drawShape(ctx, {
+        type: shapeType,
+        x: startX,
+        y: startY,
+        width: currentX,
+        height: currentY
+      })
+    } else if (shapeType === 'hexagon') {
+      const radius = Math.hypot(width, height);
+      drawShape(ctx, {
+        type: shapeType,
+        centerX: startX,
+        centerY: startY,
+        radius,
+      })
+    } else if (shapeType === 'star') {
+      const outerRadius = Math.hypot(width, height);
+      const innerRadius = outerRadius / 2;
+      drawShape(ctx, {
+        type: shapeType,
+        centerX: startX,
+        centerY: startY,
+        innerRadius,
+        outerRadius,
       })
     }
     ctx.restore();
@@ -692,25 +890,35 @@ const getExistingShapes = async (roomId: string) => {
 const isPointInShape = (x: number, y: number, shape: Shape): boolean => {
   const threshold = 5;
   //  "rectangle" | "diamond" | "rhombus" | "triangle" | "hexagon" | "star" | "heart" | "line" | "laser";
-  if (shape.type === 'rectangle' || shape.type === 'image' || shape.type === 'note') {
+  if (shape.type === 'rectangle' || shape.type === 'image' || shape.type === 'note' || shape.type === 'triangle' || shape.type === 'rhombus' || shape.type === 'arrowLeft' || shape.type === 'arrowRight' || shape.type === 'arrowUp' || shape.type === 'arrowDown') {
     const width = shape.width || 0;
     const height = shape.height || 0;
-    const left = Math.min(shape.x, shape.x + width)
-    const right = Math.max(shape.x, shape.x + width)
-    const top = Math.min(shape.y, shape.y + height)
-    const bottom = Math.max(shape.y, shape.y + height)
+    let left = Math.min(shape.x, shape.x + width)
+    let right = Math.max(shape.x, shape.x + width)
+    let top = Math.min(shape.y, shape.y + height)
+    let bottom = Math.max(shape.y, shape.y + height)
     return x >= left && x <= right && y >= top && y <= bottom;
   }
-  if (shape.type === 'rhombus' || shape.type === 'diamond') {
+  if (shape.type === 'heart') {
+    const left = shape.x - shape.width / 2;
+    const right = shape.x + shape.width / 2;
+    const top = shape.y;
+    const bottom = shape.y + shape.height;
+    return x >= left && x <= right && y >= top && y <= bottom;
+  }
+  if (shape.type === 'diamond') {
     const centerX = shape.x + shape.width / 2
     const centerY = shape.y + shape.height / 2
     const dx = Math.abs(x - centerX) / (shape.width / 2);
     const dy = Math.abs(y - centerY) / (shape.height / 2);
     return (dx + dy) <= 1;
   }
-  if (shape.type === 'circle') {
-    const distance = Math.hypot(x - shape.centerX, y - shape.centerY);
-    return distance <= shape.radius;
+  if (shape.type === 'circle' || shape.type === 'hexagon' || shape.type === 'star') {
+    const distance = Math.hypot(x - shape.centerX!, y - shape.centerY!);
+    if (shape.type === 'star') {
+      return distance <= shape.outerRadius!;
+    }
+    return distance <= shape.radius!;
   }
 
   if (shape.type === 'pencil') {
@@ -721,6 +929,9 @@ const isPointInShape = (x: number, y: number, shape: Shape): boolean => {
     })
   }
   if (shape.type === 'line') {
+    return distToSegment({ x, y }, { x: shape.x, y: shape.y }, { x: shape.width, y: shape.height }) < threshold
+  }
+  if (shape.type === 'arrow') {
     return distToSegment({ x, y }, { x: shape.x, y: shape.y }, { x: shape.width, y: shape.height }) < threshold
   }
   if (shape.type === 'text') {
