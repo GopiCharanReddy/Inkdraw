@@ -5,10 +5,23 @@ import messageRoute from './routes/message.route';
 import uploadRoute from './routes/upload.route';
 import cors from 'cors';
 import path from "path";
+import { rateLimit } from 'express-rate-limit'
+
+const apiLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  limit: 100,
+  standardHeaders: 'draft-8',
+  legacyHeaders: false,
+  ipv6Subnet: 60
+})
 
 const app: Express = express();
 const router = express.Router();
-app.use(cors());
+app.use(cors({
+  origin: process.env.FRONTEND_URL,
+  credentials: true
+}));
+app.use(apiLimiter);
 app.use(express.json());
 app.use('/api/v1', router)
 app.use('/uploads', express.static(path.join(process.cwd(), 'uploads')));

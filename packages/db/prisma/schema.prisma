@@ -10,7 +10,8 @@ generator client {
 }
 
 datasource db {
-  provider = "postgresql"
+  provider = "postgresql",
+  datasource = process.env.DATABASE_URL
 }
 
 model User {

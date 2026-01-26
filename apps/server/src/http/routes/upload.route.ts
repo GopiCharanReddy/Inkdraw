@@ -1,7 +1,8 @@
 import { Router } from 'express'
-import multer from 'multer';
+import multer, { FileFilterCallback } from 'multer';
 import path from 'path';
 import { uploadImage } from '../controllers/upload.controller';
+import { Request } from 'express';
 
 const router = Router();
 
@@ -10,11 +11,29 @@ const storage = multer.diskStorage({
     callback(null, 'uploads/');
   },
   filename: (req, file, callback) => {
-    callback(null, Date.now() + path.extname(file.originalname))
+    const ext = path.extname(file.originalname);
+    const basename = path.basename(file.originalname, ext);
+    const safeName = basename.replace(/[^a-zA-Z0-9-_]/g, '_');
+    callback(null, `${safeName}-${Date.now()}${ext}`)
   }
 });
 
-const upload = multer({ storage })
+const fileFilter = (req: Request, file: Express.Multer.File, callback: FileFilterCallback) => {
+  const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png'];
+  if (allowedTypes.includes(file.mimetype)) {
+    callback(null, true);
+  } else {
+    callback(new Error("Invalid file type, only JPEG, JPG and PNG are allowed."));
+  }
+}
+
+const upload = multer({
+  storage,
+  fileFilter,
+  limits: {
+    fileSize: 1024 * 1024 * 2
+  }
+})
 
 router.post("/", upload.single('image'), uploadImage);
 

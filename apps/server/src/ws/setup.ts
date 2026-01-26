@@ -38,9 +38,18 @@ const checkUser = async (token: string) => {
 }
 
 export const setupWs = (server: Server) => {
+
+  const RATE_LIMIT_MESSAGES = 5;
+  const RATE_LIMIT_WINDOW_MS = 1000;
+
   const socket = new WebSocketServer({ server })
 
   socket.on("connection", async function connection(ws, req) {
+    let messageCount = 0;
+    const interval = setInterval(() => {
+      messageCount = 0;
+    }, RATE_LIMIT_WINDOW_MS)
+
     const url = req.url;
     if (!url) {
       return
@@ -59,6 +68,12 @@ export const setupWs = (server: Server) => {
       users.push(currentUser)
 
       ws.on("message", async function message(data) {
+        if(messageCount >= RATE_LIMIT_MESSAGES) {
+          console.log('Rate limit exceeded for this connection. Closing connection.');
+          ws.close();
+          return;
+        }
+        messageCount++;
         console.log("Websocket connection successfully setup.")
         const parsedData = JSON.parse(data as unknown as string)
 
@@ -121,6 +136,7 @@ export const setupWs = (server: Server) => {
         }
       });
       ws.on("close", () => {
+        clearInterval(interval);
         const index = users.indexOf(currentUser);
         if (index > -1) {
           users.splice(index, 1);

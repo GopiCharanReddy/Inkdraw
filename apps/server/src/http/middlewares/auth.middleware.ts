@@ -31,7 +31,7 @@ export const authMiddleware = async (req: Request, res: Response, next: NextFunc
         message: "Session expired."
       })
     }
-    req.userId = session.id;
+    req.userId = session.userId;
     next();
   } catch (error) {
     console.error("Auth Middleware Error: ", error);
