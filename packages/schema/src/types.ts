@@ -51,7 +51,7 @@ export type Shape = | {
 } |
 {
   id: string,
-  type: 'pencil' | 'eraser'
+  type: 'pencil' | 'eraser' | 'highlight'
   points: {
     x: number;
     y: number

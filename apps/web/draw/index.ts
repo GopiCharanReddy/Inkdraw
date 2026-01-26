@@ -26,7 +26,16 @@ export const drawShape = (ctx: CanvasRenderingContext2D, shape: DraftShape) => {
     ctx.lineTo(shape.width, shape.height) // here width/height are currentX/currentY i.e., endX/endY
     ctx.lineWidth = 2;
     ctx.stroke();
-  } else if (shape.type === 'pencil') {
+  } else if (shape.type === 'pencil' || shape.type === 'highlight') {
+    if (shape.type === 'highlight') {
+      ctx.globalAlpha = 0.5;
+      ctx.lineWidth = 20;
+      ctx.strokeStyle = "#FFFF33";
+    } else {
+      ctx.globalAlpha = 1.0;
+      ctx.strokeStyle = 'black';
+      ctx.lineWidth = 2;
+    }
     if (!shape.points || shape.points.length < 2) return;
     ctx.moveTo(shape.points[0]!.x, shape.points[0]!.y);
     for (let i = 1; i < shape.points.length; i++) {
@@ -291,17 +300,19 @@ export const initDraw = async (
   const render = () => {
     const { offsetX, offsetY, scale } = useCameraStore.getState();
     const { shapes } = useShapeStore.getState();
-
+    const { activeTool } = useToolStore.getState();
+    const selectedIcon = iconLibrary.find(icon => icon.name === activeTool);
+    const shapeType = selectedIcon?.shapeType;
     ctx.clearRect(0, 0, canvas.width, canvas.height);
     ctx.save();
     ctx.translate(offsetX, offsetY);
     ctx.scale(scale, scale);
-    ctx.strokeStyle = "rgba(0, 0, 0)"
+    ctx.strokeStyle = "rgba(0, 0, 0)";
     ctx.lineWidth = 2 / scale;
     shapes.forEach((shape) => drawShape(ctx, shape));
     ctx.restore();
     if (tailPoints.length > 0) {
-      drawTail(ctx, tailPoints, offsetX, offsetY, scale)
+      drawTail(ctx, tailPoints, offsetX, offsetY, scale, shapeType!)
     }
     canvas.style.cursor = 'default'
   }
@@ -367,7 +378,7 @@ export const initDraw = async (
     // convert screen coordinates to world coordinates
     startX = (e.clientX - offsetX) / scale;
     startY = (e.clientY - offsetY) / scale;
-    if (shapeType === 'pencil') {
+    if (shapeType === 'pencil' || shapeType === 'highlight') {
       currentPencilPoints = [{ x: startX, y: startY }]
       ctx.lineWidth = 2 / scale;
     }
@@ -583,7 +594,7 @@ export const initDraw = async (
       return;
     }
 
-    if (shapeType === 'eraser') {
+    if (shapeType === 'eraser' || shapeType === 'laser') {
       tailPoints = [];
       render();
       return;
@@ -641,9 +652,9 @@ export const initDraw = async (
         width: currentX,
         height: currentY
       }
-    } else if (shapeType === 'pencil') {
+    } else if (shapeType === 'pencil' || shapeType === 'highlight') {
       newShape = {
-        type: 'pencil',
+        type: shapeType,
         points: [...currentPencilPoints],
       }
       currentPencilPoints = [];
@@ -723,25 +734,26 @@ export const initDraw = async (
       return;
     }
 
-    if (shapeType === "eraser") {
+    if (shapeType === "eraser" || shapeType === 'laser') {
       tailPoints.push({ x: currentX, y: currentY })
       if (tailPoints.length > tailLength) {
         tailPoints.shift();
       }
-
-      const shapeToDelete = shapes.find(s => isPointInShape(currentX, currentY, s))
-      if (shapeToDelete) {
-        deleteShape(shapeToDelete.id)
-        sendWSMessage({
-          type: 'chat',
-          message: JSON.stringify({
-            ...shapeToDelete,
-            isDeleted: true // Add this flag
-          }),
-          roomId
-        });
+      if (shapeType === 'eraser') {
+        const shapeToDelete = shapes.find(s => isPointInShape(currentX, currentY, s))
+        if (shapeToDelete) {
+          deleteShape(shapeToDelete.id)
+          sendWSMessage({
+            type: 'chat',
+            message: JSON.stringify({
+              ...shapeToDelete,
+              isDeleted: true // Add this flag
+            }),
+            roomId
+          });
+        }
       }
-      drawTail(ctx, tailPoints, offsetX, offsetY, scale);
+      drawTail(ctx, tailPoints, offsetX, offsetY, scale, shapeType);
       render();
       return;
     }
@@ -777,10 +789,10 @@ export const initDraw = async (
         width: currentX,
         height: currentY
       })
-    } else if (shapeType === 'pencil') {
+    } else if (shapeType === 'pencil' || shapeType === 'highlight') {
       currentPencilPoints.push({ x: currentX, y: currentY })
       drawShape(ctx, {
-        type: 'pencil',
+        type: shapeType,
         points: currentPencilPoints
       })
     } else if (shapeType === 'arrow') {
@@ -921,8 +933,8 @@ const isPointInShape = (x: number, y: number, shape: Shape): boolean => {
     return distance <= shape.radius!;
   }
 
-  if (shape.type === 'pencil') {
-    return shape.points.some((p, i) => {
+  if (shape.type === 'pencil' || shape.type === 'highlight') {
+    return shape.points?.some((p, i) => {
       if (i == 0) return false;
       const prev = shape.points[i - 1];
       return distToSegment({ x, y }, prev!, p) < threshold;
@@ -954,7 +966,7 @@ const distToSegment = (p: HitDetect, v: HitDetect, w: HitDetect) => {
   return Math.hypot(p.x - (v.x + t * (w.x - v.x)), p.y - (v.y + t * (w.y - v.y)));
 }
 
-const drawTail = (ctx: CanvasRenderingContext2D, tailPoints: { x: number, y: number }[], offsetX: number, offsetY: number, scale: number) => {
+const drawTail = (ctx: CanvasRenderingContext2D, tailPoints: { x: number, y: number }[], offsetX: number, offsetY: number, scale: number, toolType: string) => {
   if (tailPoints.length < 2) return;
   ctx.save();
   ctx.translate(offsetX, offsetY);
@@ -963,18 +975,33 @@ const drawTail = (ctx: CanvasRenderingContext2D, tailPoints: { x: number, y: num
   ctx.beginPath();
   ctx.moveTo(tailPoints[0]!.x, tailPoints[0]!.y);
 
-  for (let i = 0; i < tailPoints.length; i++) {
-    ctx.lineTo(tailPoints[i]!.x, tailPoints[i]!.y)
+  for (let i = 1; i < tailPoints.length - 1; i++) {
+    const p1 = tailPoints[i];
+    const p2 = tailPoints[i + 1];
+    const midX = (p1!.x + p2!.x) / 2;
+    const midY = (p1!.y + p2!.y) / 2;
+    ctx.quadraticCurveTo(p1!.x, p1!.y, midX, midY);
   }
+  const lastPoint = tailPoints[tailPoints.length - 1];
+  if (lastPoint) ctx.lineTo(lastPoint.x, lastPoint.y);
 
-  ctx.strokeStyle = "rgba(180, 180, 180, 0.5)";
-  ctx.lineWidth = 6 / scale;
   ctx.lineCap = "round";
   ctx.lineJoin = "round";
 
-  ctx.shadowBlur = 2;
-  ctx.shadowColor = "rgba(245, 245, 245, 0.7)";
-
+  if (toolType === 'laser') {
+    ctx.strokeStyle = "#ff0000";
+    ctx.lineWidth = 5 / scale;
+    ctx.shadowBlur = 20;
+    ctx.shadowColor = "rgba(255, 0, 0, 0.8)";
+    ctx.stroke();
+    ctx.strokeStyle = 'white';
+    ctx.lineWidth = 1 / scale;
+  } else {
+    ctx.strokeStyle = "rgba(180, 180, 180, 0.5)";
+    ctx.lineWidth = 10 / scale;
+    ctx.shadowBlur = 2;
+    ctx.shadowColor = "rgba(245, 245, 245, 0.7)";
+  }
   ctx.stroke();
   ctx.restore();
 }
