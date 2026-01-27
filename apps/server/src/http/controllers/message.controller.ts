@@ -16,17 +16,17 @@ export const loadMessages = async (req: Request, res: Response) => {
         roomId: parsedData.data.roomId,
         isDeleted: false
       }, orderBy: {
-        id: 'desc'
+        id: 'asc'
       },
       take: 50
     },)
-    return res.status(201).json({
+    return res.status(200).json({
       messages,
     })
   } catch (error) {
     console.error("An error occurred while loading messages.", error)
-    res.status(500).json({
-      error: "Error while loading messages."
+    return res.status(500).json({
+      message: "Error while loading messages."
     })
   }
 }

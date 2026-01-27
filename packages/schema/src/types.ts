@@ -3,19 +3,19 @@ import z from "zod";
 export const UserSchema = z.object({
   username: z
     .string()
-    .min(3, { error: "Username must be at least 3 characters long" })
-    .max(20, { error: "Username cannot exceed 20 characters" })
+    .min(3, { message: "Username must be at least 3 characters long" })
+    .max(20, { message: "Username cannot exceed 20 characters" })
     .regex(/^[a-z0-9]+$/, {
-      error: "Username can only contain lowercase letters and numbers",
+      message: "Username can only contain lowercase letters and numbers",
     }),
-  email: z.email({ error: "Invalid email address" }),
+  email: z.email({ message: "Invalid email address" }),
   password: z
     .string()
-    .min(8, { error: "Password must be at least 8 characters long" })
+    .min(8, { message: "Password must be at least 8 characters long" })
     .regex(/[A-Z]/, {
-      error: "Password must contain at least one uppercase letter",
+      message: "Password must contain at least one uppercase letter",
     })
-    .regex(/[0-9]/, { error: "Password must contain at least one number" }),
+    .regex(/[0-9]/, { message: "Password must contain at least one number" }),
 });
 
 export const CreateRoomSchema = z.object({

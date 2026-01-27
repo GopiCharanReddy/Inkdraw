@@ -6,7 +6,7 @@ export const uploadImage = (req: Request, res: Response) => {
   }
   const fileUrl = `${process.env.HTTP_URL || "http://localhost:8080"}/uploads/${req.file.filename}`;
 
-  res.json({
+  return res.json({
     imgUrl: fileUrl
   })
 }

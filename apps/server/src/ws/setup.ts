@@ -42,6 +42,10 @@ export const setupWs = (server: Server) => {
 
   const RATE_LIMIT_MESSAGES = 5;
   const RATE_LIMIT_WINDOW_MS = 1000;
+  const HEARTBEAT_INTERVAL = 30000;
+  const CLIENT_TIMEOUT = 35000;
+
+  const aliveMap = new WeakMap<WebSocket, boolean>();
 
   const socket = new WebSocketServer({ server })
 
@@ -49,7 +53,9 @@ export const setupWs = (server: Server) => {
     let messageCount = 0;
     const interval = setInterval(() => {
       messageCount = 0;
-    }, RATE_LIMIT_WINDOW_MS)
+    }, RATE_LIMIT_WINDOW_MS);
+
+    aliveMap.set(ws, true);
 
     const url = req.url;
     if (!url) {
@@ -77,74 +83,80 @@ export const setupWs = (server: Server) => {
         }
         messageCount++;
         console.log("Websocket connection successfully setup.");
-        const parsedData = JSON.parse(data as unknown as string);
+        try {
+          const parsedData = JSON.parse(data as unknown as string);
 
-        if (parsedData.type === 'join_room') {
-          currentUser.rooms.add(parsedData.roomId);
-          if (!roomMembers.has(parsedData.roomId)) {
-            roomMembers.set(parsedData.roomId, new Set());
+          if (parsedData.type === 'join_room') {
+            currentUser.rooms.add(parsedData.roomId);
+            if (!roomMembers.has(parsedData.roomId)) {
+              roomMembers.set(parsedData.roomId, new Set());
+            }
+            roomMembers.get(parsedData.roomId)?.add(currentUser.userId);
+
+            const roomId = parsedData.roomId
+
+            await prismaClient.room.createMany({
+              data: {
+                id: roomId,
+                slug: roomId,
+                adminId: userAuthentication?.userId || null
+              },
+              skipDuplicates: true
+            });
           }
-          roomMembers.get(parsedData.roomId)?.add(currentUser.userId);
 
-          const roomId = parsedData.roomId
+          if (parsedData.type === 'leave_room') {
+            roomMembers.get(parsedData.roomId)?.delete(currentUser.userId);
+            currentUser.rooms.delete(parsedData.roomId);
+          }
 
-          await prismaClient.room.upsert({
-            where: { id: roomId },
-            update: {
-              ...(userAuthentication && { adminId: userAuthentication.userId })
-            },
-            create: {
-              id: roomId,
-              slug: roomId,
-              adminId: userAuthentication?.userId || null
-            }
-          });
-        }
+          if (parsedData.type === 'chat') {
+            const members = roomMembers.get(parsedData.roomId);
+            if (!members) return;
+            const { roomId, message } = parsedData
+            const shapeData = JSON.parse(message);
+            const shapeId = shapeData.id;
+            const isDeleted = shapeData.isDeleted || false;
 
-        if (parsedData.type === 'leave_room') {
-          roomMembers.get(parsedData.roomId)?.delete(currentUser.userId);
-          currentUser.rooms.delete(parsedData.roomId);
-        }
-
-        if (parsedData.type === 'chat') {
-          const members = roomMembers.get(parsedData.roomId);
-          if (!members) return;
-          const { roomId, message } = parsedData
-          const shapeData = JSON.parse(message);
-          const shapeId = shapeData.id;
-          const isDeleted = shapeData.isDeleted || false;
-
-          members.forEach((userId) => {
-            const user = connections.get(userId);
-            if (user) {
-              user.ws.send(JSON.stringify({
-                type: parsedData.type,
-                message,
-                roomId,
-                shapeId,
-                isDeleted,
-              }))
-            }
-          })
-
-          const res = await chatQueue.add("saveMessage", {
-            userId: userAuthentication?.userId || null,
-            roomId,
-            message,
-            shapeId,
-            isDeleted
-          },
-            {
-              attempts: 3,
-              backoff: {
-                type: "exponential",
-                delay: 5000
+            members.forEach((userId) => {
+              const user = connections.get(userId);
+              if (user) {
+                user.ws.send(JSON.stringify({
+                  type: parsedData.type,
+                  message,
+                  roomId,
+                  shapeId,
+                  isDeleted,
+                }))
               }
-            }
-          );
-          console.log("Job added to queue.")
+            })
+
+            const res = await chatQueue.add("saveMessage", {
+              userId: userAuthentication?.userId || null,
+              roomId,
+              message,
+              shapeId,
+              isDeleted
+            },
+              {
+                attempts: 3,
+                backoff: {
+                  type: "exponential",
+                  delay: 5000
+                }
+              }
+            );
+            console.log("Job added to queue.")
+          }
+        } catch (error) {
+          console.log("Error while processing websocket message.", error)
         }
       });
+
+      ws.on("pong", () => {
+        aliveMap.set(ws, true);
+      });
+
       ws.on("close", () => {
         clearInterval(interval);
         currentUser.rooms.forEach((roomId) => {
@@ -155,10 +167,28 @@ export const setupWs = (server: Server) => {
         connections.delete(currentUser.userId);
         console.log("User disconnected and removed from memory.");
       });
+
+      ws.on("error", (error) => {
+        console.log("Error while connecting to websocket server.", error);
+        ws.close();
+      });
     } catch (error) {
       console.log("Error while connecting to websocket server.", error);
       ws.close();
       return;
     }
+  })
+  const heartbeatInterval = setInterval(() => {
+    socket.clients.forEach((ws) => {
+      if (aliveMap.get(ws) === false) {
+        console.log("Terminating dead connection.");
+        return ws.terminate();
+      }
+      aliveMap.set(ws, false);
+    })
+  }, HEARTBEAT_INTERVAL);
+
+  socket.on('close', () => {
+    clearInterval(heartbeatInterval);
   })
 }
