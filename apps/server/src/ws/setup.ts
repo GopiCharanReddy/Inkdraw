@@ -6,11 +6,12 @@ import prismaClient from "@repo/db";
 type User = {
   ws: WebSocket,
   userId: string,
-  rooms: string[],
+  rooms: Set<string>,
   username?: string | null
 }
 
-const users: User[] = [];
+const connections = new Map<string, User>();
+const roomMembers = new Map<string, Set<string>>();
 
 const checkUser = async (token: string) => {
   if (!token) return null;
@@ -63,25 +64,30 @@ export const setupWs = (server: Server) => {
         userId: userAuthentication?.userId || `GUEST_${Math.random().toString(36).substring(2, 9)}`,
         username: userAuthentication?.username,
         ws,
-        rooms: []
+        rooms: new Set(),
       }
-      users.push(currentUser)
+
+      connections.set(currentUser.userId, currentUser);
 
       ws.on("message", async function message(data) {
-        if(messageCount >= RATE_LIMIT_MESSAGES) {
+        if (messageCount >= RATE_LIMIT_MESSAGES) {
           console.log('Rate limit exceeded for this connection. Closing connection.');
           ws.close();
           return;
         }
         messageCount++;
-        console.log("Websocket connection successfully setup.")
-        const parsedData = JSON.parse(data as unknown as string)
+        console.log("Websocket connection successfully setup.");
+        const parsedData = JSON.parse(data as unknown as string);
 
         if (parsedData.type === 'join_room') {
-          const roomId = parsedData.roomId
-          if (!currentUser.rooms.includes(parsedData.roomId)) {
-            currentUser.rooms.push(parsedData.roomId)
+          currentUser.rooms.add(parsedData.roomId);
+          if (!roomMembers.has(parsedData.roomId)) {
+            roomMembers.set(parsedData.roomId, new Set());
           }
+          roomMembers.get(parsedData.roomId)?.add(currentUser.userId);
+
+          const roomId = parsedData.roomId
+
           await prismaClient.room.upsert({
             where: { id: roomId },
             update: {
@@ -96,17 +102,21 @@ export const setupWs = (server: Server) => {
         }
 
         if (parsedData.type === 'leave_room') {
-          currentUser.rooms = currentUser.rooms.filter(id => id !== parsedData.roomId)
+          roomMembers.get(parsedData.roomId)?.delete(currentUser.userId);
+          currentUser.rooms.delete(parsedData.roomId);
         }
 
         if (parsedData.type === 'chat') {
+          const members = roomMembers.get(parsedData.roomId);
+          if (!members) return;
           const { roomId, message } = parsedData
           const shapeData = JSON.parse(message);
           const shapeId = shapeData.id;
           const isDeleted = shapeData.isDeleted || false;
 
-          users.forEach(user => {
-            if (user.rooms.includes(roomId)) {
+          members.forEach((userId) => {
+            const user = connections.get(userId);
+            if (user) {
               user.ws.send(JSON.stringify({
                 type: parsedData.type,
                 message,
@@ -137,10 +147,12 @@ export const setupWs = (server: Server) => {
       });
       ws.on("close", () => {
         clearInterval(interval);
-        const index = users.indexOf(currentUser);
-        if (index > -1) {
-          users.splice(index, 1);
-        }
+        currentUser.rooms.forEach((roomId) => {
+          const roomSet = roomMembers.get(roomId);
+          roomSet?.delete(currentUser.userId);
+          if (roomSet?.size === 0) roomMembers.delete(roomId);
+        })
+        connections.delete(currentUser.userId);
         console.log("User disconnected and removed from memory.");
       });
     } catch (error) {

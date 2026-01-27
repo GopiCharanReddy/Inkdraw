@@ -14,7 +14,12 @@ const storage = multer.diskStorage({
     const ext = path.extname(file.originalname);
     const basename = path.basename(file.originalname, ext);
     const safeName = basename.replace(/[^a-zA-Z0-9-_]/g, '_');
-    callback(null, `${safeName}-${Date.now()}${ext}`)
+    const allowedExtensions = ['.jpg', '.jpeg', '.png'];
+    if (!allowedExtensions.includes(ext.toLowerCase())) {
+      return callback(new Error('Invalid file extension'), '');
+    }
+
+    callback(null, `${safeName}-${Date.now()}${ext}`);
   }
 });
 
@@ -34,7 +39,6 @@ const upload = multer({
     fileSize: 1024 * 1024 * 2
   }
 })
-
 router.post("/", upload.single('image'), uploadImage);
 
 export default router;
