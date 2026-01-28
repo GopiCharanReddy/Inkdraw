@@ -29,7 +29,6 @@ export const FetchMessages = z.object({
   roomId: z.coerce.string()
 })
 
-
 export type Shape = | {
   id: string,
   type: "rectangle" | "diamond" | "rhombus" | "triangle" | "heart" | "line" | "laser" | "select" | "arrow" | "arrowLeft" | "arrowRight" | "arrowUp" | "arrowDown";

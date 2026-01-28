@@ -6,6 +6,7 @@ import uploadRoute from './routes/upload.route';
 import cors from 'cors';
 import path from "path";
 import { rateLimit } from 'express-rate-limit'
+import { config } from "../config";
 
 const apiLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
@@ -18,7 +19,7 @@ const apiLimiter = rateLimit({
 const app: Express = express();
 const router = express.Router();
 app.use(cors({
-  origin: process.env.FRONTEND_URL,
+  origin: config.FRONTEND_URL,
   credentials: true
 }));
 app.use(apiLimiter);

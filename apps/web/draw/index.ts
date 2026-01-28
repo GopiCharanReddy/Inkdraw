@@ -4,6 +4,7 @@ import { sendWSMessage } from "../components/socketManager";
 import { useCameraStore, useShapeStore, useToolStore } from "../components/store/store";
 import { iconLibrary } from "../components/resources/icons";
 import { knewave } from "../app/layout";
+import { config } from "../config";
 
 const imageCache = new Map<string, HTMLImageElement>();
 
@@ -504,7 +505,7 @@ export const initDraw = async (
         const formData = new FormData();
         formData.append('image', file)
 
-        const res = await axios.post(`${process.env.NEXT_PUBLIC_HTTP_URL}/api/v1/upload`, formData);
+        const res = await axios.post(`${config.NEXT_PUBLIC_HTTP_URL}/api/v1/upload`, formData);
         const imgUrl = res.data.imgUrl;
 
         const newShape: Shape = {
@@ -884,7 +885,7 @@ export const initDraw = async (
 const getExistingShapes = async (roomId: string) => {
   console.log("Getting existing shapes")
   try {
-    const res = await axios.get(`${process.env.NEXT_PUBLIC_HTTP_URL}/api/v1/chat/${roomId}`);
+    const res = await axios.get(`${config.NEXT_PUBLIC_HTTP_URL}/api/v1/chat/${roomId}`);
     const messages = res.data.messages;
     console.log("Messages is :", messages);
 

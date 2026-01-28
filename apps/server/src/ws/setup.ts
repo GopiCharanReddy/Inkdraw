@@ -43,7 +43,6 @@ export const setupWs = (server: Server) => {
   const RATE_LIMIT_MESSAGES = 5;
   const RATE_LIMIT_WINDOW_MS = 1000;
   const HEARTBEAT_INTERVAL = 30000;
-  const CLIENT_TIMEOUT = 35000;
 
   const aliveMap = new WeakMap<WebSocket, boolean>();
 
@@ -185,6 +184,7 @@ export const setupWs = (server: Server) => {
         return ws.terminate();
       }
       aliveMap.set(ws, false);
+      ws.ping();
     })
   }, HEARTBEAT_INTERVAL);
 

@@ -2,6 +2,7 @@ import prismaClient from "@repo/db";
 import { Worker } from "bullmq";
 import { createRedisConnection } from "@repo/redis";
 import { UnrecoverableError } from "bullmq";
+import { config } from "../../config";
 
 declare global {
   var chatWorkerGlobal: Worker | undefined;
@@ -51,6 +52,6 @@ if (!globalThis.chatWorkerGlobal) {
   })
 }
 
-if (process.env.NODE_ENV === 'production') {
+if (config.NODE_ENV === 'production') {
   globalThis.chatWorkerGlobal = chatWorker
 }

@@ -18,7 +18,7 @@ export const loadMessages = async (req: Request, res: Response) => {
       }, orderBy: {
         id: 'asc'
       },
-      take: 50
+      take: 1000
     },)
     return res.status(200).json({
       messages,

@@ -9,6 +9,7 @@ import ToolBar from "../../../components/Toolbar/ToolBar";
 import { useShapeStore } from "../../../components/store/store";
 import { authClient } from '@repo/auth/client'
 import { knewave } from "../../layout";
+import { config } from "../../../config";
 
 const Canvas = () => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -31,7 +32,7 @@ const Canvas = () => {
     fetchSession();
   }, []);
 
-  const WEBSOCKET_URL = `${process.env.NEXT_PUBLIC_WS_URL}?token=${token}`;
+  const WEBSOCKET_URL = `${config.NEXT_PUBLIC_WS_URL}?token=${token}`;
   const { isConnected, message } = useWebSocket(WEBSOCKET_URL || "", roomId);
   const drawActionsRef = useRef<DrawActions | null>(null)
 
