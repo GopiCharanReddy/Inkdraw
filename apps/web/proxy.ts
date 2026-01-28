@@ -6,8 +6,8 @@ export const proxy = (request: NextRequest) => {
 
   const isAuthenticated = !!sessionToken;
 
-  if(isAuthenticated) {
-    return NextResponse.redirect(new URL('/', request.url));
+  if (!isAuthenticated) {
+    return NextResponse.redirect(new URL('/signup', request.url));
   } else {
     const randomRoomId = crypto.randomUUID();
     return NextResponse.redirect(new URL(`/canvas/${randomRoomId}`, request.url));
@@ -15,5 +15,5 @@ export const proxy = (request: NextRequest) => {
 }
 
 export const config = {
-  matcher: '/about/:path',
+  matcher: '/',
 }

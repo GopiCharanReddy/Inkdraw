@@ -83,7 +83,7 @@ export const setupWs = (server: Server) => {
         messageCount++;
         console.log("Websocket connection successfully setup.");
         try {
-          const parsedData = JSON.parse(data as unknown as string);
+          const parsedData = JSON.parse(data.toString());
 
           if (parsedData.type === 'join_room') {
             currentUser.rooms.add(parsedData.roomId);

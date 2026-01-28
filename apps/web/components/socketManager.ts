@@ -27,13 +27,7 @@ export const initWebsocket = (url: string, roomId: string, onMessage: (data: Inc
   }
 
   socket.onopen = () => {
-    console.log("Socket connected.")
-    if (socket.readyState === WebSocket.OPEN) {
-      socket?.send(JSON.stringify({
-        type: 'join_room',
-        roomId: roomId
-      }))
-    }
+    console.log("Socket connected.");
   }
 
   socket.onmessage = (event: MessageEvent) => {

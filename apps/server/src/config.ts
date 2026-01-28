@@ -8,4 +8,10 @@ const envSchema = z.object({
   NODE_ENV: z.enum(["development", "production", "test"]).default("development"),
 })
 
-export const config = envSchema.parse(process.env);
+export const config = envSchema.parse({
+  PORT: process.env.PORT,
+  DATABASE_URL: process.env.DATABASE_URL,
+  FRONTEND_URL: process.env.FRONTEND_URL,
+  HTTP_URL: process.env.HTTP_URL,
+  NODE_ENV: process.env.NODE_ENV,
+});

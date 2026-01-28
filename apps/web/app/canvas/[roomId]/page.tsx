@@ -32,7 +32,7 @@ const Canvas = () => {
     fetchSession();
   }, []);
 
-  const WEBSOCKET_URL = `${config.NEXT_PUBLIC_WS_URL}?token=${token}`;
+  const WEBSOCKET_URL = isAuthChecked ? `${config.NEXT_PUBLIC_WS_URL}?token=${token}` : "";
   const { isConnected, message } = useWebSocket(WEBSOCKET_URL || "", roomId);
   const drawActionsRef = useRef<DrawActions | null>(null)
 
