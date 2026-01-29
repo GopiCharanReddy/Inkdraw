@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { initWebsocket, sendWSMessage } from "../socketManager";
+import { initWebsocket, sendWSMessage } from "./socketManager";
 import { IncomingWsData, WSMessage } from "@repo/schema";
 
 const useWebSocket = (url: string, roomId: string) => {

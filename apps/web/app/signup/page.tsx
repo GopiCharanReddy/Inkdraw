@@ -1,5 +1,5 @@
 import { Suspense } from "react"
-import { AuthPage } from "../../components/AuthComponent"
+import { AuthPage } from "../../components/auth/AuthComponent"
 
 const Signup = () => {
   return (

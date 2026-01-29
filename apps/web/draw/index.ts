@@ -1,6 +1,6 @@
 import axios from "axios";
 import { DraftShape, DrawActions, Shape } from '@repo/schema';
-import { sendWSMessage } from "../components/socketManager";
+import { sendWSMessage } from "../components/hooks/socketManager";
 import { useCameraStore, useShapeStore, useToolStore } from "../components/store/store";
 import { iconLibrary } from "../components/resources/icons";
 import { knewave } from "../app/layout";
@@ -885,7 +885,10 @@ export const initDraw = async (
 const getExistingShapes = async (roomId: string) => {
   console.log("Getting existing shapes")
   try {
-    const res = await axios.get(`${config.NEXT_PUBLIC_HTTP_URL}/api/v1/chat/${roomId}`);
+    console.log("Fetching:", `${config.NEXT_PUBLIC_HTTP_URL}/api/v1/chat/${roomId}`);
+    const res = await axios.get(`${config.NEXT_PUBLIC_HTTP_URL}/api/v1/chat/${roomId}`, {
+      withCredentials: true,
+    });
     const messages = res.data.messages;
     console.log("Messages is :", messages);
 
