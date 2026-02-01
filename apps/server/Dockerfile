@@ -18,8 +18,8 @@ RUN npm install
 
 COPY --from=builder /app/out/full/ .
 COPY turbo.json turbo.json
-RUN cd packages/db && npx prisma generate
 ENV DATABASE_URL="postgresql://postgres:postgres@localhost:5432/postgres"
+RUN cd packages/db && npx prisma generate
 RUN npm run build --filter=server
 
 FROM base AS runner
