@@ -4,7 +4,7 @@ FROM node:18-alpine AS base
 FROM base AS builder
 WORKDIR /app
 RUN npm install -g pnpm
-RUN pnpm install -g turbo
+RUN npm install -g turbo
 COPY . .
 # This command is the magic. It isolates "web" and its dependencies.
 RUN turbo prune --scope=web --docker
@@ -13,14 +13,15 @@ RUN turbo prune --scope=web --docker
 FROM base AS installer
 WORKDIR /app
 RUN npm install -g pnpm
+RUN npm install -g turbo
 COPY --from=builder /app/out/json/ .
 COPY --from=builder /app/out/pnpm-lock.yaml ./pnpm-lock.yaml
-RUN pnpm install
+RUN npm install
 
 # 3. Build: Compile the Next.js app
 COPY --from=builder /app/out/full/ .
 COPY turbo.json turbo.json
-RUN pnpm run build --filter=web
+RUN npm run build --filter=web
 
 # 4. Run: Production server
 FROM base AS runner
