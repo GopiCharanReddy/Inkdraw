@@ -1,13 +1,14 @@
 import axios from "axios";
 import { DraftShape, DrawActions, Shape } from '@repo/schema';
-import { sendWSMessage } from "../components/hooks/socketManager";
+import { sendWSMessage } from "../components/socket/socketManager";
 import { useCameraStore, useShapeStore, useToolStore } from "../components/store/store";
 import { iconLibrary } from "../components/resources/icons";
 import { knewave } from "../app/layout";
 import { config } from "../config";
+import { renderShapeToCanvas } from "./render";
 
 const imageCache = new Map<string, HTMLImageElement>();
-
+/*
 export const drawShape = (ctx: CanvasRenderingContext2D, shape: DraftShape) => {
   ctx.beginPath()
   if (shape.type === 'rectangle') {
@@ -273,6 +274,10 @@ export const drawShape = (ctx: CanvasRenderingContext2D, shape: DraftShape) => {
     ctx.stroke();
   }
 }
+*/
+
+export const drawShape = renderShapeToCanvas;
+
 export const initDraw = async (
   canvas: HTMLCanvasElement,
   roomId: string
