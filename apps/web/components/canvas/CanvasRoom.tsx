@@ -5,7 +5,7 @@ import { config } from "../../config";
 import useWebSocket from "../hooks/useWebsocket";
 import { DrawActions, Shape } from "@repo/schema";
 import { initDraw } from "@/draw";
-import { sendWSMessage } from "../hooks/socketManager";
+import { sendWSMessage } from "../socket/socketManager";
 import { useShapeStore } from "../store/store";
 import ToolBar from "../Toolbar/ToolBar";
 import { knewave } from "@/app/layout";
@@ -15,7 +15,7 @@ interface CanvasRoom {
   roomId: string;
   token: string
 }
-const CanvasRoom = ({roomId, token}: CanvasRoom) => {
+const CanvasRoom = ({ roomId, token }: CanvasRoom) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const drawActionsRef = useRef<DrawActions | null>(null);
 
@@ -115,7 +115,7 @@ const CanvasRoom = ({roomId, token}: CanvasRoom) => {
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, []);
 
-  if(!isConnected) {
+  if (!isConnected) {
     return (
       <LoaderFive text="Connecting to server..." />
     )

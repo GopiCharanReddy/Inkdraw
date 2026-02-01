@@ -2,6 +2,7 @@ import { WebSocket, WebSocketServer } from "ws";
 import { Server } from 'http';
 import { chatQueue } from "./queues/chat.queue";
 import prismaClient from "@repo/db";
+import { createRedisConnection } from "@repo/redis";
 
 type User = {
   ws: WebSocket,
@@ -9,6 +10,36 @@ type User = {
   rooms: Set<string>,
   username?: string | null
 }
+
+const publisher = createRedisConnection();
+const subscriber = createRedisConnection();
+
+subscriber.subscribe("COMPUTE_UPDATES", (err) => {
+  if (err) console.error("Failed to subscribe to Redis:", err);
+});
+
+subscriber.on('message', (channel, chatMessage) => {
+  if (channel === "COMPUTE_UPDATES") {
+    const parsedData = JSON.parse(chatMessage);
+    const { roomId, message, shapeId, isDeleted } = parsedData;
+
+    const members = roomMembers.get(roomId);
+    if (members) {
+      members.forEach(memberUserId => {
+        const userConnection = connections.get(memberUserId);
+        if (userConnection) {
+          userConnection.ws.send(JSON.stringify({
+            type: 'chat',
+            message,
+            roomId,
+            shapeId,
+            isDeleted
+          }))
+        }
+      })
+    }
+  }
+})
 
 const connections = new Map<string, User>();
 const roomMembers = new Map<string, Set<string>>();
@@ -117,18 +148,13 @@ export const setupWs = (server: Server) => {
             const shapeId = shapeData.id;
             const isDeleted = shapeData.isDeleted || false;
 
-            members.forEach((userId) => {
-              const user = connections.get(userId);
-              if (user) {
-                user.ws.send(JSON.stringify({
-                  type: parsedData.type,
-                  message,
-                  roomId,
-                  shapeId,
-                  isDeleted,
-                }))
-              }
-            })
+            await publisher.publish("COMPUTE_UPDATES", JSON.stringify({
+              roomId,
+              message,
+              userId: currentUser.userId,
+              shapeId,
+              isDeleted
+            }))
 
             const res = await chatQueue.add("saveMessage", {
               userId: userAuthentication?.userId || null,
