@@ -3,25 +3,37 @@ import multer, { FileFilterCallback } from 'multer';
 import path from 'path';
 import { uploadImage } from '../controllers/upload.controller';
 import { Request } from 'express';
+import { CloudinaryStorage } from 'multer-storage-cloudinary';
+import { v2 as cloudinary } from 'cloudinary';
 
 const router = Router();
 
-const storage = multer.diskStorage({
-  destination: (req, file, callback) => {
-    callback(null, 'uploads/');
-  },
-  filename: (req, file, callback) => {
-    const ext = path.extname(file.originalname);
-    const basename = path.basename(file.originalname, ext);
-    const safeName = basename.replace(/[^a-zA-Z0-9-_]/g, '_');
-    const allowedExtensions = ['.jpg', '.jpeg', '.png'];
-    if (!allowedExtensions.includes(ext.toLowerCase())) {
-      return callback(new Error('Invalid file extension'), '');
-    }
+cloudinary.config({
+  secure: true
+})
 
-    callback(null, `${safeName}-${Date.now()}${ext}`);
+const storage = new CloudinaryStorage({
+  cloudinary,
+  params: async (req: Request, file: Express.Multer.File) => {
+    try {
+      const folderPath = 'inkdraw-images';
+      const fileExtension = path.extname(file.originalname).substring(1);
+      const basename = path.basename(file.originalname, `.${fileExtension}`);
+      const safeName = basename.replace(/[^a-zA-Z0-9-_]/g, '_');
+      const publicId = `${safeName}-${Date.now()}`
+
+      return {
+        folder: folderPath,
+        public_id: publicId,
+        format: fileExtension,
+        allowed_formats: ['jpg', 'jpeg', 'png'],
+      }
+    } catch (error) {
+      console.error("Error generating Cloudinary params: ", error);
+      throw error;
+    }
   }
-});
+})
 
 const fileFilter = (req: Request, file: Express.Multer.File, callback: FileFilterCallback) => {
   const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png'];
