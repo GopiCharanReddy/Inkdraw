@@ -1,4 +1,4 @@
-FROM node:18-alpine AS base
+FROM node:24-alpine AS base
 
 # 1. Prune: separate the "web" app from the rest of the monorepo
 FROM base AS builder
