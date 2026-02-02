@@ -19,9 +19,8 @@ RUN pnpm install --frozen-lockfile
 
 COPY --from=builder /app/out/full/ .
 COPY turbo.json turbo.json
-# Dummy URL to satisfy prisma generate during build. Overridden at runtime.
-ENV DATABASE_URL="postgresql://postgres:postgres@localhost:5432/postgres"
-RUN npm run build --filter=server
+COPY turbo.json turbo.json
+RUN DATABASE_URL="postgresql://postgres:postgres@localhost:5432/postgres" pnpm run build --filter=server
 
 FROM base AS runner
 WORKDIR /app

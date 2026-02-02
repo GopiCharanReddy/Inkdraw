@@ -22,9 +22,8 @@ RUN pnpm install --frozen-lockfile
 # 3. Build: Compile the Next.js app
 COPY --from=builder /app/out/full/ .
 COPY turbo.json turbo.json
-# Dummy URL to satisfy prisma generate during build.
-ENV DATABASE_URL="postgresql://postgres:postgres@localhost:5432/postgres"
-RUN npm run build --filter=web
+COPY turbo.json turbo.json
+RUN DATABASE_URL="postgresql://postgres:postgres@localhost:5432/postgres" pnpm run build --filter=web
 
 # 4. Run: Production server
 FROM base AS runner
