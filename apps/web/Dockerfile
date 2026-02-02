@@ -21,6 +21,8 @@ RUN npm install
 # 3. Build: Compile the Next.js app
 COPY --from=builder /app/out/full/ .
 COPY turbo.json turbo.json
+ARG DATABASE_URL
+ENV DATABASE_URL=$DATABASE_URL
 RUN npm run build --filter=web
 
 # 4. Run: Production server
