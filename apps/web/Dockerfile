@@ -16,13 +16,14 @@ RUN npm install -g pnpm
 RUN npm install -g turbo
 COPY --from=builder /app/out/json/ .
 COPY --from=builder /app/out/pnpm-lock.yaml ./pnpm-lock.yaml
-RUN npm install
+RUN apk add --no-cache openssl
+RUN pnpm install --frozen-lockfile
 
 # 3. Build: Compile the Next.js app
 COPY --from=builder /app/out/full/ .
 COPY turbo.json turbo.json
-ARG DATABASE_URL
-ENV DATABASE_URL=$DATABASE_URL
+# Dummy URL to satisfy prisma generate during build.
+ENV DATABASE_URL="postgresql://postgres:postgres@localhost:5432/postgres"
 RUN npm run build --filter=web
 
 # 4. Run: Production server
