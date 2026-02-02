@@ -4,7 +4,7 @@ import { setupWs } from "./ws/setup";
 import './ws/workers/chat.worker';
 import { config } from "./config";
 
-const PORT = config.PORT;
+const PORT = config.PORT || 8080;
 const server = http.createServer(app);
 
 setupWs(server);
