@@ -18,6 +18,7 @@ const getConnectionString = () => {
 }
 
 const connectionString = getConnectionString();
+console.log("Database Connection String Status:", connectionString ? "Defined (Length: " + connectionString.length + ")" : "Undefined/Empty");
 
 const prismaClientSingleton = () => {
   const pool = new Pool({
