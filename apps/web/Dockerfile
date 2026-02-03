@@ -16,7 +16,7 @@ RUN npm install -g pnpm
 RUN npm install -g turbo
 COPY --from=builder /app/out/json/ .
 COPY --from=builder /app/out/pnpm-lock.yaml ./pnpm-lock.yaml
-RUN apk add --no-cache openssl
+RUN apk add --no-cache openssl ca-certificates
 RUN pnpm install --frozen-lockfile
 
 # 3. Build: Compile the Next.js app
