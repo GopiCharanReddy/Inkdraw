@@ -32,7 +32,9 @@ export const AuthPage = ({ isSignin }: { isSignin: boolean }) => {
             router.push(destinationUrl)
           }
         },
-        onError: (ctx) => alert(ctx.error.message)
+        onError: (ctx) => {
+          alert(ctx.error.message ?? "An unknown error occurred");
+        }
       });
     } else {
       await authClient.signUp.email({
@@ -47,7 +49,9 @@ export const AuthPage = ({ isSignin }: { isSignin: boolean }) => {
             router.push(destinationUrl)
           }
         },
-        onError: (ctx) => alert(ctx.error.message)
+        onError: (ctx) => {
+          alert(ctx.error.message ?? "An unknown error occurred");
+        }
       })
     }
   }

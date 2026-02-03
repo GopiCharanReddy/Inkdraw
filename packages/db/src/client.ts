@@ -3,7 +3,21 @@ import { Pool } from "pg";
 import { PrismaPg } from '@prisma/adapter-pg'
 import { PrismaClient } from "../generated/prisma/index.js";
 
-const connectionString = `${process.env.DATABASE_URL}`
+const getConnectionString = () => {
+  if (!process.env.DATABASE_URL) {
+    return "";
+  }
+  try {
+    const url = new URL(process.env.DATABASE_URL);
+    // Remove sslmode from the URL to allow explicit ssl config in Pool to take precedence
+    url.searchParams.delete('sslmode');
+    return url.toString();
+  } catch (e) {
+    return process.env.DATABASE_URL;
+  }
+}
+
+const connectionString = getConnectionString();
 
 const prismaClientSingleton = () => {
   const pool = new Pool({
