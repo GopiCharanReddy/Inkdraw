@@ -23,10 +23,7 @@ RUN pnpm install --frozen-lockfile
 COPY --from=builder /app/out/full/ .
 COPY turbo.json turbo.json
 COPY turbo.json turbo.json
-RUN BETTER_AUTH_SECRET="random_string_for_build_only" \
-    BETTER_AUTH_URL="http://localhost:3000" \
-    DATABASE_URL="postgresql://postgres:postgres@localhost:5432/postgres" \
-    pnpm run build --filter=web
+RUN pnpm run build --filter=web
 
 # 4. Run: Production server
 FROM base AS runner
