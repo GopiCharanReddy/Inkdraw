@@ -23,7 +23,7 @@ RUN pnpm install --frozen-lockfile
 COPY --from=builder /app/out/full/ .
 COPY turbo.json turbo.json
 COPY turbo.json turbo.json
-RUN pnpm run build --filter=web
+RUN DATABASE_URL="postgresql://postgres:postgres@localhost:5432/postgres" pnpm run build --filter=web
 
 # 4. Run: Production server
 FROM base AS runner
