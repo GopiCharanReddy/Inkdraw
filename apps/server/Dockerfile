@@ -24,6 +24,7 @@ RUN DATABASE_URL="postgresql://postgres:postgres@localhost:5432/postgres" pnpm r
 
 FROM base AS runner
 WORKDIR /app
+RUN apk add --no-cache openssl ca-certificates
 COPY --from=installer /app .
 
 CMD ["node", "apps/server/dist/index.js"]

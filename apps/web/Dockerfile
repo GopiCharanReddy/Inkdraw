@@ -28,6 +28,7 @@ RUN DATABASE_URL="postgresql://postgres:postgres@localhost:5432/postgres" pnpm r
 # 4. Run: Production server
 FROM base AS runner
 WORKDIR /app
+RUN apk add --no-cache openssl ca-certificates
 USER node
 # Don't run as root
 COPY --from=installer /app/apps/web/next.config.js .
