@@ -1,5 +1,8 @@
 FROM node:24-alpine AS base
 
+ARG DATABASE_URL=postgresql://placeholder:placeholder@placeholder:5432/placeholder
+ENV DATABASE_URL=$DATABASE_URL
+
 # 1. Prune: separate the "web" app from the rest of the monorepo
 FROM base AS builder
 WORKDIR /app
@@ -23,7 +26,7 @@ RUN pnpm install --frozen-lockfile
 COPY --from=builder /app/out/full/ .
 COPY turbo.json turbo.json
 COPY turbo.json turbo.json
-RUN DATABASE_URL="postgresql://postgres:postgres@localhost:5432/postgres" pnpm run build --filter=web
+RUN pnpm run build --filter=web
 
 # 4. Run: Production server
 FROM base AS runner
