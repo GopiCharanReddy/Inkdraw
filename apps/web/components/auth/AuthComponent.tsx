@@ -7,6 +7,7 @@ import { IconBrandGoogle } from "@tabler/icons-react";
 import { useRouter } from 'next/navigation'
 import { useSearchParams } from 'next/navigation'
 import { authClient } from '@repo/auth/client'
+import Link from "next/link";
 
 export const AuthPage = ({ isSignin }: { isSignin: boolean }) => {
   const [name, setName] = useState('');
@@ -113,6 +114,9 @@ export const AuthPage = ({ isSignin }: { isSignin: boolean }) => {
             </button>
           </div>
         </form>
+        <div className="text-center">
+          {isSignin ? "Are you an existing user?" : "Don't have an account yet?"} <Link className="text-blue-500 hover:underline cursor-pointer" href={isSignin ? "/signup" : "/signin"}>{isSignin ? "Signup" : "Signin"}</Link>
+        </div>
       </div>
     </div>
   );
