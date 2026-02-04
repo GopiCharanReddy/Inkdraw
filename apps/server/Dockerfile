@@ -7,8 +7,6 @@ RUN npm install -g turbo
 COPY . .
 # Change "http-backend" to whatever is in your package.json "name" field
 RUN turbo prune --scope=server --docker
-ARG DATABASE_URL=postgresql://placeholder:placeholder@placeholder:5432/placeholder
-ENV DATABASE_URL=$DATABASE_URL
 
 FROM base AS installer
 WORKDIR /app
@@ -22,7 +20,7 @@ RUN pnpm install --frozen-lockfile
 COPY --from=builder /app/out/full/ .
 COPY turbo.json turbo.json
 COPY turbo.json turbo.json
-RUN pnpm run build --filter=server
+RUN DATABASE_URL="postgresql://postgres:postgres@localhost:5432/postgres" pnpm run build --filter=server
 
 FROM base AS runner
 WORKDIR /app
