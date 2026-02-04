@@ -2,7 +2,7 @@ import { WebSocket, WebSocketServer } from "ws";
 import { Server } from 'http';
 import { chatQueue } from "./queues/chat.queue";
 import prismaClient from "@repo/db";
-import { createRedisConnection } from "@repo/redis";
+import { createPublisher, createSubscriber } from "@repo/redis";
 
 type User = {
   ws: WebSocket,
@@ -11,8 +11,8 @@ type User = {
   username?: string | null
 }
 
-const publisher = createRedisConnection();
-const subscriber = createRedisConnection();
+const publisher = createPublisher();
+const subscriber = createSubscriber();
 
 subscriber.subscribe("COMPUTE_UPDATES", (err) => {
   if (err) console.error("Failed to subscribe to Redis:", err);

@@ -33,7 +33,6 @@ export const AuthPage = ({ isSignin }: { isSignin: boolean }) => {
           }
         },
         onError: (ctx) => {
-          console.log(process.env.DATABASE_URL);
           console.log("Full error context:", ctx);
           alert(ctx.error.message ?? "An unknown error occurred");
         }
@@ -52,7 +51,6 @@ export const AuthPage = ({ isSignin }: { isSignin: boolean }) => {
           }
         },
         onError: (ctx) => {
-          console.log(process.env.DATABASE_URL);
           console.log("Full error context:", ctx);
           alert(ctx.error.message ?? "An unknown error occurred");
         }
