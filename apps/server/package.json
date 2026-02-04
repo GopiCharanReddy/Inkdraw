@@ -6,7 +6,9 @@
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "dev": "tsx watch src/index.ts",
-    "build": "tsc",
+    "build": "pnpm run db:generate && tsc",
+    "db:generate": "cd ../../packages/db && prisma generate",
+    "postinstall": "pnpm run db:generate",
     "start": "node ./dist/index.js",
     "worker": "tsx watch src/ws/workers/chat.worker.ts"
   },

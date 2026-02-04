@@ -6,7 +6,8 @@
   "types": "src/client.d.ts",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "build": "prisma generate && tsc -p tsconfig.json"
+    "build": "prisma generate && tsc -p tsconfig.json",
+    "postinstall": "prisma generate"
   },
   "keywords": [],
   "author": "",
