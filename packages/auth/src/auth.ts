@@ -5,7 +5,6 @@ import prismaClient from '@repo/db'
 let _auth: ReturnType<typeof betterAuth> | null = null;
 
 export const getAuth = () => {
-  console.log(process.env.DATABASE_URL)
   if (!_auth) {
     if (!process.env.BETTER_AUTH_SECRET || !process.env.BETTER_AUTH_URL) {
       throw new Error("BETTER_AUTH_SECRET or BETTER_AUTH_URL is missing at runtime");

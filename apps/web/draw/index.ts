@@ -333,6 +333,8 @@ export const initDraw = async (
   window.addEventListener("resize", handleResize)
   handleResize();
 
+  render();
+
   // logic used for using backspace & enter keys for shapetype text 
   // const handleKeyDown = (e: KeyboardEvent) => {
   //   if (!existingTextId) return;
