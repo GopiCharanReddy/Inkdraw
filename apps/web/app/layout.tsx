@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import localFont from "next/font/local";
 import { Knewave } from 'next/font/google';
+import { Analytics } from "@vercel/analytics/next"
 import "./globals.css";
 
 export const knewave = Knewave({
