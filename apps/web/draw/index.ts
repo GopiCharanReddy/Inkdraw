@@ -284,6 +284,7 @@ export const initDraw = async (
 ): Promise<DrawActions> => {
   const { setShapes } = useShapeStore.getState();
   const initialShapes = await getExistingShapes(roomId)
+  console.log(`[initDraw] Loaded ${initialShapes.length} existing shapes for room ${roomId}`);
   setShapes(initialShapes);
   const ctx = canvas.getContext("2d");
   if (!ctx) {
@@ -333,6 +334,8 @@ export const initDraw = async (
   window.addEventListener("resize", handleResize)
   handleResize();
 
+  // Ensure initial render happens after shapes are loaded
+  console.log(`[initDraw] Rendering ${useShapeStore.getState().shapes.length} shapes`);
   render();
 
   // logic used for using backspace & enter keys for shapetype text 
@@ -881,9 +884,6 @@ export const initDraw = async (
           useShapeStore.setState({ shapes: [...shapes, s] })
         }
       }
-      useShapeStore.setState((state) => ({
-        shapes: [...state.shapes, s]
-      }))
       render();
     }
   }

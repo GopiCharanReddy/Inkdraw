@@ -18,6 +18,7 @@ interface CanvasRoom {
 const CanvasRoom = ({ roomId, token }: CanvasRoom) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const drawActionsRef = useRef<DrawActions | null>(null);
+  const hasJoinedRoom = useRef<boolean>(false);
 
   const WEBSOCKET_URL = `${config.NEXT_PUBLIC_WS_URL}?token=${token}`;
   const { isConnected, message } = useWebSocket(WEBSOCKET_URL || "", roomId);
@@ -47,11 +48,17 @@ const CanvasRoom = ({ roomId, token }: CanvasRoom) => {
   }, [isConnected, roomId]);
 
   useEffect(() => {
-    if (isConnected) {
+    // Reset the flag when roomId changes
+    hasJoinedRoom.current = false;
+  }, [roomId]);
+
+  useEffect(() => {
+    if (isConnected && !hasJoinedRoom.current) {
       sendWSMessage({
         type: 'join_room',
         roomId: roomId,
       })
+      hasJoinedRoom.current = true;
     }
   }, [isConnected, roomId])
 
