@@ -1,10 +1,11 @@
 import { Suspense } from "react"
 import { AuthPage } from "../../components/auth/AuthComponent"
+import { LoaderFour } from "@/components/ui/loader"
 
 const Signin = () => {
   return (
     <>
-      <Suspense fallback={<div>Loading...</div>}>
+      <Suspense fallback={<LoaderFour />}>
         <AuthPage isSignin={true} />
       </Suspense>
     </>

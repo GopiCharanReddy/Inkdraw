@@ -1,12 +1,13 @@
 import { Suspense } from "react"
 import { AuthPage } from "../../components/auth/AuthComponent"
+import { LoaderFour } from "@/components/ui/loader"
 
 const Signup = () => {
   return (
     <>
-    <Suspense fallback={<div>Loading...</div>}>
-      <AuthPage isSignin={false} />
-    </Suspense>
+      <Suspense fallback={<LoaderFour />}>
+        <AuthPage isSignin={false} />
+      </Suspense>
     </>
   )
 }
