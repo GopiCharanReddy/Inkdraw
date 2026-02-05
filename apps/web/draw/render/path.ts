@@ -4,6 +4,8 @@ export const renderLine = (ctx: CanvasRenderingContext2D, shape: DraftShape) => 
   if (shape.type === 'line') {
     ctx.moveTo(shape.x, shape.y)
     ctx.lineTo(shape.width, shape.height) // here width/height are currentX/currentY i.e., endX/endY
+    ctx.globalAlpha = 1.0;
+    ctx.strokeStyle = 'black';
     ctx.lineWidth = 2;
     ctx.stroke();
   }

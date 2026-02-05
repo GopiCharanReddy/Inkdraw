@@ -1,5 +1,5 @@
 import { DraftShape } from "@repo/schema";
-import { renderArrow, renderArrowDirection, renderCircle, renderDiamond, renderRectangle, renderTriangle } from "./basic";
+import { renderArrow, renderArrowDirection, renderCircle, renderDiamond, renderHeart, renderHexagon, renderRectangle, renderRhombus, renderStar, renderTriangle } from "./basic";
 import { renderLine, renderPath } from "./path";
 import { renderNote, renderText } from "./text";
 import { renderImage } from "./media";
@@ -22,6 +22,10 @@ const renderers: Record<string, RenderFn> = {
   arrowRight: renderArrowDirection,
   arrowUp: renderArrowDirection,
   arrowDown: renderArrowDirection,
+  hexagon: renderHexagon,
+  star: renderStar,
+  heart: renderHeart,
+  rhombus: renderRhombus,
 }
 
 export const renderShapeToCanvas = (ctx: CanvasRenderingContext2D, shape: DraftShape) => {
