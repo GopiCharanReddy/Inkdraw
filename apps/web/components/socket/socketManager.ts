@@ -10,6 +10,14 @@ export const initWebsocket = (url: string, roomId: string, onMessage: (data: Inc
   }
 
   if (ws && ws.readyState === WebSocket.OPEN && currentUrl === url) {
+    ws.onmessage = (event: MessageEvent) => {
+      try {
+        const parsedData: IncomingWsData = JSON.parse(event.data);
+        onMessage(parsedData);
+      } catch (e) {
+        console.error("Failed to parse WS message.", e)
+      }
+    }
     return ws;
   }
 

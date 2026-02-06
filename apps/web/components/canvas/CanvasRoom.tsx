@@ -53,6 +53,12 @@ const CanvasRoom = ({ roomId, token }: CanvasRoom) => {
   }, [roomId]);
 
   useEffect(() => {
+    if (!isConnected) {
+      hasJoinedRoom.current = false;
+    }
+  }, [isConnected]);
+
+  useEffect(() => {
     if (isConnected && !hasJoinedRoom.current) {
       sendWSMessage({
         type: 'join_room',
@@ -70,10 +76,16 @@ const CanvasRoom = ({ roomId, token }: CanvasRoom) => {
       try {
         const data = typeof message === 'string' ? JSON.parse(message) : message;
 
+        if (data.type === 'init_shapes') {
+          const shapes = JSON.parse(data.message);
+          useShapeStore.setState({ shapes });
+        }
+
         if (data.type === 'chat') {
           const shapeData: Shape = typeof data.message === 'string' ? JSON.parse(data.message) : data.message;
+          const isDeleted = data.isDeleted || shapeData.isDeleted;
 
-          if (shapeData.isDeleted) {
+          if (isDeleted) {
             useShapeStore.setState((state) => ({
               shapes: state.shapes.filter(s => s.id !== shapeData.id)
             }));
@@ -85,7 +97,16 @@ const CanvasRoom = ({ roomId, token }: CanvasRoom) => {
                 shapes: shapes.map(s => s.id === shapeData.id ? shapeData : s)
               })
             } else {
-              drawActionsRef.current.handleAddRemoteShape(shapeData);
+              if (drawActionsRef.current) {
+                drawActionsRef.current.handleAddRemoteShape(shapeData);
+              } else {
+                // If drawActions is not ready, update store directly
+                // Ensure no duplicates
+                const exists = shapes.find(s => s.id === shapeData.id);
+                if (!exists) {
+                  useShapeStore.setState({ shapes: [...shapes, shapeData] });
+                }
+              }
             }
           }
         }

@@ -9,16 +9,27 @@ const useWebSocket = (url: string, roomId: string) => {
   useEffect(() => {
     if (!url || typeof window === 'undefined') return;
 
-    const socket = initWebsocket(url, roomId, (data) => {
-      setMessage(data);
-    })
-    if (!socket) return;
+    let socketIntance: WebSocket | null = null;
+
+    const connect = () => {
+      socketIntance = initWebsocket(url, roomId, (data) => {
+        setMessage(data);
+      });
+    }
+
+    connect();
 
     const checkInterval = setInterval(() => {
-      setIsConnected(socket.readyState === WebSocket.OPEN)
+      if (socketIntance?.readyState === WebSocket.CLOSED) {
+        console.log("Socket closed, attempting reconnect...");
+        connect();
+      }
+      setIsConnected(socketIntance?.readyState === WebSocket.OPEN);
     }, 1000);
 
-    return () => clearInterval(checkInterval);
+    return () => {
+      clearInterval(checkInterval);
+    };
   }, [url, roomId])
 
   return { isConnected, message, sendWsMessage: sendWSMessage as (msg: WSMessage) => void }
