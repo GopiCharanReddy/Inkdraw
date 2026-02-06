@@ -282,10 +282,6 @@ export const initDraw = async (
   canvas: HTMLCanvasElement,
   roomId: string
 ): Promise<DrawActions> => {
-  const { setShapes } = useShapeStore.getState();
-  const initialShapes = await getExistingShapes(roomId)
-  console.log(`[initDraw] Loaded ${initialShapes.length} existing shapes for room ${roomId}`);
-  setShapes(initialShapes);
   const ctx = canvas.getContext("2d");
   if (!ctx) {
     throw new Error("Canvas context not found.");
@@ -303,6 +299,7 @@ export const initDraw = async (
   let startX = 0;
   let startY = 0;
   canvas.style.cursor = 'default';
+  let destroyed = false; // Added destroyed flag
   // resets the camera
   const render = () => {
     const { offsetX, offsetY, scale } = useCameraStore.getState();
@@ -325,6 +322,7 @@ export const initDraw = async (
   }
 
   const unsubscribeShapes = useShapeStore.subscribe(render);
+  render();
   // handling window resize
   const handleResize = () => {
     canvas.width = window.innerWidth;
@@ -333,10 +331,6 @@ export const initDraw = async (
   }
   window.addEventListener("resize", handleResize)
   handleResize();
-
-  // Ensure initial render happens after shapes are loaded
-  console.log(`[initDraw] Rendering ${useShapeStore.getState().shapes.length} shapes`);
-  render();
 
   // logic used for using backspace & enter keys for shapetype text 
   // const handleKeyDown = (e: KeyboardEvent) => {
@@ -866,6 +860,7 @@ export const initDraw = async (
 
   return {
     cleanup: () => {
+      destroyed = true;
       unsubscribeShapes();
       window.removeEventListener("resize", handleResize);
       // window.removeEventListener('keydown', handleKeyDown);
@@ -889,25 +884,7 @@ export const initDraw = async (
   }
 }
 
-const getExistingShapes = async (roomId: string) => {
-  console.log("Getting existing shapes")
-  try {
-    console.log("Fetching:", `${config.NEXT_PUBLIC_HTTP_URL}/api/v1/chat/${roomId}`);
-    const res = await axios.get(`${config.NEXT_PUBLIC_HTTP_URL}/api/v1/chat/${roomId}`, {
-      withCredentials: true,
-    });
-    const messages = res.data.messages;
-    console.log("Messages is :", messages);
 
-    const shapes = messages.map((x: { content: string }) => {
-      return JSON.parse(x.content);
-    })
-    return shapes;
-  } catch (error) {
-    console.error("Error fetching shapes: ", error);
-    return [];
-  }
-}
 
 
 const isPointInShape = (x: number, y: number, shape: Shape): boolean => {

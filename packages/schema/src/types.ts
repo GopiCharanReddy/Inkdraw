@@ -76,7 +76,8 @@ export type DraftShape = DistributiveOmit<Shape, 'id'>;
 
 export type WSMessage = { roomId: string } & (
   | { type: 'join_room' }
-  | { type: 'chat', message: string }
+  | { type: 'chat', message: string, isDeleted?: boolean }
+  | { type: 'init_shapes', message: string }
 )
 
 export type IncomingWsData = WSMessage | { type: "error"; message: string };
