@@ -27,7 +27,17 @@ export const chatWorker = globalThis.chatWorkerGlobal || new Worker(
         create: {
           content: message,
           userId: userId || null,
-          roomId: roomId,
+          room: {
+            connectOrCreate: {
+              where: {
+                slug: roomId
+              },
+              create: {
+                id: roomId,
+                slug: roomId
+              }
+            }
+          },
           shapeId,
           isDeleted,
         }

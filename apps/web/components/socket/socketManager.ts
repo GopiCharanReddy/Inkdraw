@@ -9,7 +9,7 @@ export const initWebsocket = (url: string, roomId: string, onMessage: (data: Inc
     return null;
   }
 
-  if (ws && ws.readyState === WebSocket.OPEN && currentUrl === url) {
+  if (ws && (ws.readyState === WebSocket.OPEN || ws.readyState === WebSocket.CONNECTING) && currentUrl === url) {
     ws.onmessage = (event: MessageEvent) => {
       try {
         const parsedData: IncomingWsData = JSON.parse(event.data);

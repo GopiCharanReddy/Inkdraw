@@ -115,7 +115,7 @@ export const AuthPage = ({ isSignin }: { isSignin: boolean }) => {
           </div>
         </form>
         <div className="text-center">
-          {isSignin ? "Are you an existing user?" : "Don't have an account yet?"} <Link className="text-blue-500 hover:underline cursor-pointer" href={isSignin ? "/signup" : "/signin"}>{isSignin ? "Signup" : "Signin"}</Link>
+          {isSignin ? "Don't have an account yet?" : "Are you an existing user?"} <Link className="text-blue-500 hover:underline cursor-pointer" href={isSignin ? "/signup" : "/signin"}>{isSignin ? "Signup" : "Signin"}</Link>
         </div>
       </div>
     </div>
