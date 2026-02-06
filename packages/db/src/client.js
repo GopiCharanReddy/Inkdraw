@@ -1,6 +1,4 @@
 import "dotenv/config";
-import { Pool } from "pg";
-import { PrismaPg } from '@prisma/adapter-pg';
 import { PrismaClient } from "../generated/prisma/index.js";
 const getConnectionString = () => {
     if (!process.env.DATABASE_URL) {
@@ -17,19 +15,22 @@ const getConnectionString = () => {
     }
 };
 const prismaClientSingleton = () => {
-    const connectionString = getConnectionString();
+    const connectionString = process.env.DATABASE_URL;
     console.log("Database Connection String Status:", connectionString ? "Defined (Length: " + connectionString.length + ")" : "Undefined/Empty");
-    const pool = new Pool({
-        connectionString,
-        max: 20,
-        idleTimeoutMillis: 30000,
-        connectionTimeoutMillis: 10000,
-        ssl: {
-            rejectUnauthorized: false
-        }
-    });
-    const adapter = new PrismaPg(pool);
-    return new PrismaClient({ adapter });
+    // Fallback to strict standard Prisma Client
+    return new PrismaClient();
+    // PREVIOUS ADAPTER SETUP (Commented out for debugging)
+    // const pool = new Pool({
+    //   connectionString: getConnectionString(), // existing helper
+    //   max: 20,
+    //   idleTimeoutMillis: 30000,
+    //   connectionTimeoutMillis: 10000,
+    //   ssl: {
+    //     rejectUnauthorized: false
+    //   }
+    // });
+    // const adapter = new PrismaPg(pool);
+    // return new PrismaClient({ adapter });
 };
 const prisma = globalThis.prismaGlobal ?? prismaClientSingleton();
 if (process.env.NODE_ENV !== 'production') {

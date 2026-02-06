@@ -1,14 +1,9 @@
 import "dotenv/config";
-import { PrismaPg } from '@prisma/adapter-pg';
 import { PrismaClient } from "../generated/prisma/index.js";
-declare const prismaClientSingleton: () => PrismaClient<{
-    adapter: PrismaPg;
-}, never, import("../generated/prisma/runtime/client.js").DefaultArgs>;
+declare const prismaClientSingleton: () => PrismaClient<import("../generated/prisma/index.js").Prisma.PrismaClientOptions, never, import("../generated/prisma/runtime/client.js").DefaultArgs>;
 declare global {
     var prismaGlobal: undefined | ReturnType<typeof prismaClientSingleton>;
 }
-declare const prisma: PrismaClient<{
-    adapter: PrismaPg;
-}, never, import("../generated/prisma/runtime/client.js").DefaultArgs>;
+declare const prisma: PrismaClient<import("../generated/prisma/index.js").Prisma.PrismaClientOptions, never, import("../generated/prisma/runtime/client.js").DefaultArgs>;
 export default prisma;
 //# sourceMappingURL=client.d.ts.map
