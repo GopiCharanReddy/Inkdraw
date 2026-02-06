@@ -2,16 +2,6 @@ import "dotenv/config";
 import { Pool } from "pg";
 import { PrismaPg } from '@prisma/adapter-pg';
 import { PrismaClient } from "../generated/prisma/index.js";
-import dns from "node:dns";
-// Force IPv4 resolution to avoid ENETUNREACH on IPv6 in some environments
-try {
-    if (dns.setDefaultResultOrder) {
-        dns.setDefaultResultOrder('ipv4first');
-    }
-}
-catch (e) {
-    // Ignore if method is missing
-}
 const getConnectionString = () => {
     if (!process.env.DATABASE_URL) {
         return "";

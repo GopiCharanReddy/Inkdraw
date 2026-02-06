@@ -1,8 +1,3 @@
-import dns from "node:dns";
-try {
-  if (dns.setDefaultResultOrder) dns.setDefaultResultOrder('ipv4first');
-} catch (e) { }
-
 import prismaClient from "@repo/db";
 import { Worker } from "bullmq";
 import { createRedisConnection } from "@repo/redis";
