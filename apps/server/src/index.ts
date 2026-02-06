@@ -1,3 +1,13 @@
+import dns from "node:dns";
+// Force IPv4 resolution to prevent ENETUNREACH issues
+try {
+  if (dns.setDefaultResultOrder) {
+    dns.setDefaultResultOrder('ipv4first');
+  }
+} catch (e) {
+  // Ignore
+}
+
 import app from './http/app';
 import http from 'http';
 import { setupWs } from "./ws/setup";
