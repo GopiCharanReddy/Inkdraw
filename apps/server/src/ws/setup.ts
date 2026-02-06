@@ -117,13 +117,43 @@ export const setupWs = (server: Server) => {
           const parsedData = JSON.parse(data.toString());
 
           if (parsedData.type === 'join_room') {
-            currentUser.rooms.add(parsedData.roomId);
-            if (!roomMembers.has(parsedData.roomId)) {
-              roomMembers.set(parsedData.roomId, new Set());
-            }
-            roomMembers.get(parsedData.roomId)?.add(currentUser.userId);
+            const roomId = parsedData.roomId;
+            currentUser.rooms.add(roomId);
 
-            const roomId = parsedData.roomId
+            if (!roomMembers.has(roomId)) {
+              roomMembers.set(roomId, new Set());
+            }
+            roomMembers.get(roomId)?.add(currentUser.userId);
+
+            try {
+              const existingMessages = await prismaClient.message.findMany({
+                where: {
+                  roomId,
+                  isDeleted: false
+                },
+                orderBy: {
+                  id: 'asc'
+                }
+              });
+
+              const shapes = existingMessages.map((msg) => {
+                try {
+                  return JSON.parse(msg.content);
+                } catch (e) {
+                  return null;
+                }
+              }).filter(item => item !== null);
+
+              if (shapes.length > 0) {
+                ws.send(JSON.stringify({
+                  type: 'init_shapes',
+                  message: JSON.stringify(shapes),
+                  roomId
+                }));
+              }
+            } catch (error) {
+              console.log("Error fetching existing messages", error);
+            }
 
             await prismaClient.room.createMany({
               data: {
@@ -171,7 +201,7 @@ export const setupWs = (server: Server) => {
                 }
               }
             );
-            console.log("Job added to queue.")
+            console.log(`Job ${res.id} added to queue.`)
           }
         } catch (error) {
           console.log("Error while processing websocket message.", error)
