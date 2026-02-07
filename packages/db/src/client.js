@@ -8,8 +8,6 @@ const getConnectionString = () => {
     }
     try {
         const url = new URL(process.env.DATABASE_URL);
-        // Remove sslmode from the URL to allow explicit ssl config in Pool to take precedence
-        url.searchParams.delete('sslmode');
         return url.toString();
     }
     catch (e) {
