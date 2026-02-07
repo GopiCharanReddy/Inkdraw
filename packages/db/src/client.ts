@@ -19,24 +19,20 @@ const getConnectionString = () => {
 
 
 const prismaClientSingleton = () => {
-  const connectionString = process.env.DATABASE_URL;
+  const connectionString = getConnectionString();
   console.log("Database Connection String Status:", connectionString ? "Defined (Length: " + connectionString.length + ")" : "Undefined/Empty");
+  const pool = new Pool({
+    connectionString,
+    max: 20,
+    idleTimeoutMillis: 30000,
+    connectionTimeoutMillis: 10000,
+    ssl: {
+      rejectUnauthorized: false
+    }
+  });
+  const adapter = new PrismaPg(pool);
 
-  // Fallback to strict standard Prisma Client
-  return new PrismaClient();
-
-  // conneciton using pool
-  // const pool = new Pool({
-  //   connectionString: getConnectionString(), // existing helper
-  //   max: 20,
-  //   idleTimeoutMillis: 30000,
-  //   connectionTimeoutMillis: 10000,
-  //   ssl: {
-  //     rejectUnauthorized: false
-  //   }
-  // });
-  // const adapter = new PrismaPg(pool);
-  // return new PrismaClient({ adapter });
+  return new PrismaClient({ adapter });
 }
 
 declare global {

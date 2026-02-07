@@ -2,7 +2,11 @@
   "$schema": "https://turborepo.com/schema.json",
   "globalEnv": [
     "DATABASE_URL",
-    "NODE_ENV"
+    "NODE_ENV",
+    "BETTER_AUTH_SECRET",
+    "BETTER_AUTH_URL",
+    "GOOGLE_CLIENT_ID",
+    "GOOGLE_CLIENT_SECRET"
   ],
   "ui": "tui",
   "tasks": {
@@ -17,7 +21,10 @@
       "outputs": [
         "dist/**",
         ".next/**",
-        "!.next/cache/**"
+        "!.next/cache/**",
+        "src/generated/**",
+        "src/**/*.js",
+        "src/**/*.d.ts"
       ]
     },
     "lint": {
